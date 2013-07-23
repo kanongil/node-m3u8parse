@@ -72,6 +72,17 @@ describe('M3U8Playlist', function() {
     });
   })
 
+  describe('constructor', function() {
+    it('should auto instantiate', function() {
+      m3u8parse.M3U8Playlist().should.be.an.instanceof(m3u8parse.M3U8Playlist);
+    })
+
+    it('should clone passed object', function() {
+      testIndex.should.eql(new m3u8parse.M3U8Playlist(testIndex));
+      variantIndex.should.eql(new m3u8parse.M3U8Playlist(variantIndex));
+    })
+  })
+
   describe('#totalDuration()', function() {
     it('should calculate total of all segments durations', function() {
       testIndex.totalDuration().should.equal(46.166);

@@ -15,7 +15,8 @@
   "author": "Gil Pedersen <gpdev@gpost.dk>",
   "license": "BSD",
   "dependencies": {
-    "carrier": "~0.1.10"
+    "carrier": "~0.1.10",
+    "clone": "~0.1.9"
   },
   "devDependencies": {
     "mocha": "~1.12.0",

@@ -2,7 +2,8 @@
 
 var path = require('path'),
     util = require('util'),
-    carrier = require('carrier');
+    carrier = require('carrier'),
+    clone = require('clone');
 
 var debug = function () {};
 try {
@@ -15,24 +16,34 @@ exports.M3U8Playlist = M3U8Playlist;
 exports.M3U8Segment = M3U8Segment;
 exports.ParserError = ParserError;
 
-function M3U8Playlist() {
-  this.variant = false;
+function M3U8Playlist(obj) {
+  if (!(this instanceof M3U8Playlist))
+    return new M3U8Playlist(obj);
+
+  obj = obj || {};
+
+  this.variant = obj.variant || false;
 
   // initialize to default values
-  this.version = 1; // V1
-  this.allow_cache = true;
-  this.i_frames_only = false; // V4
-  this.target_duration = undefined;
-  this.first_seq_no = 0;
-  this.type = undefined; // V?
-  this.ended = false;
+  this.version = obj.version || 1; // V1
+  this.allow_cache = obj.allow_cache || true;
+  this.i_frames_only = obj.i_frames_only || false; // V4
+  this.target_duration = obj.target_duration || undefined;
+  this.first_seq_no = obj.first_seq_no || 0;
+  this.type = obj.type; // V?
+  this.ended = obj.ended || false;
 
   this.segments = [];
+  if (obj.segments) {
+    this.segments = obj.segments.map(function (segment) {
+      return new M3U8Segment(segment);
+    });
+  }
 
   // for variant streams
-  this.programs = {};
-  this.groups = {};
-  this.iframes = {}; // V4
+  this.programs = clone(obj.programs) || {};
+  this.groups = clone(obj.groups) || {};
+  this.iframes = clone(obj.iframes) || {}; // V4
 }
 
 M3U8Playlist.prototype.PlaylistType = {
@@ -135,6 +146,12 @@ M3U8Playlist.prototype.toString = function() {
 };
 
 function M3U8Segment(uri, meta, version) {
+  if (uri.uri) {
+    meta = uri;
+    uri = meta.uri;
+    version = 10000;
+  }
+
   this.duration = meta.duration;
   this.title = meta.title;
   this.uri = uri;
