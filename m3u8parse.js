@@ -202,9 +202,12 @@ function ParseAttrList(input) {
 function StringifyAttrList(attrs) {
   var res = '';
   for (var key in attrs) {
-    if (res.length !== 0) res += ',';
-    // TODO: sanitize attr values?
-    res += key.toUpperCase() + '=' + attrs[key];
+    var value = attrs[key];
+    if (value !== undefined && value !== null) {
+      if (res.length !== 0) res += ',';
+      // TODO: sanitize attr values?
+      res += key.toUpperCase() + '=' + value;
+    }
   }
   return res;
 }
