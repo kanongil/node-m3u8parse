@@ -82,6 +82,21 @@ M3U8Playlist.prototype.isValidSeqNo = function(seqNo) {
   return (seqNo >= this.first_seq_no) && (seqNo <= this.lastSeqNo());
 };
 
+M3U8Playlist.prototype.dateForSeqNo = function(seqNo) {
+  var segment, targetSegment = this.getSegment(seqNo);
+  var elapsed = 0;
+
+  // walk backwards until we find a segment with program_time
+  while (segment = this.getSegment(seqNo--)) {
+    elapsed += segment.duration;
+    if (segment.program_time)
+      return new Date(segment.program_time.getTime() + (elapsed - targetSegment.duration) * 1000);
+  }
+
+  // nothing found
+  return null;
+};
+
 M3U8Playlist.prototype.getSegment = function(seqNo) {
   // TODO: should we check for number type and throw if not?
   var index = seqNo-this.first_seq_no;

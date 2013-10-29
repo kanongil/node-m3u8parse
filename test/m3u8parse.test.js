@@ -129,12 +129,36 @@ describe('M3U8Playlist', function() {
     })
   })
 
+  describe('#dateForSeqNo()', function() {
+    it('should return null for for out of bounds sequence numbers', function() {
+      should.not.exist(testIndex.dateForSeqNo(0));
+      should.not.exist(testIndex.dateForSeqNo("100"));
+      should.not.exist(testIndex.dateForSeqNo(10000));
+      should.not.exist(testIndex.dateForSeqNo("10000"));
+    })
+    it('should return null for for indexes with no date information', function() {
+      should.not.exist(variantIndex.dateForSeqNo(0));
+
+      var index = new m3u8parse.M3U8Playlist(testIndex);
+      delete index.segments[0].program_time;
+      should.not.exist(index.dateForSeqNo(7794));
+    })
+    it('should return correct value for numbers in range', function() {
+      testIndex.dateForSeqNo("7794").should.be.an.instanceof(Date);
+      testIndex.dateForSeqNo(7794).should.eql(new Date('2013-10-29T11:34:13.000Z'));
+      testIndex.dateForSeqNo(7795).should.eql(new Date('2013-10-29T11:34:15.833Z'));
+      testIndex.dateForSeqNo(7796).should.eql(new Date('2013-10-29T11:34:30.833Z'));
+      testIndex.dateForSeqNo(7797).should.eql(new Date('2013-10-29T11:34:44.000Z'));
+    })
+  })
+
   describe('#getSegment()', function() {
     it('should return segment data for valid sequence numbers', function() {
-      testIndex.getSegment(7794).should.be.an.instanceof(m3u8parse.M3U8Segment);
+      testIndex.getSegment("7794").should.be.an.instanceof(m3u8parse.M3U8Segment);
       testIndex.getSegment(7797).should.be.an.instanceof(m3u8parse.M3U8Segment);
     })
     it('should return null for out of bounds sequence numbers', function() {
+      should.not.exist(testIndex.getSegment());
       should.not.exist(testIndex.getSegment(-1));
       should.not.exist(testIndex.getSegment(7793));
       should.not.exist(testIndex.getSegment(7798));
