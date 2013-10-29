@@ -232,11 +232,11 @@ function M3U8Parse(stream, cb) {
       line_no = 0,
       meta = {};
 
-  stream.on('error', ReportError);
-
   var cr = carrier.carry(stream);
   cr.on('line', ParseLine);
   cr.on('end', Complete);
+
+  stream.on('error', ReportError);
 
   function cleanup() {
     stream.removeListener('error', ReportError);
