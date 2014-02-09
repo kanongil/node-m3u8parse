@@ -112,8 +112,12 @@ M3U8Playlist.prototype.toString = function() {
     m3u8 += '#EXT-X-VERSION:' + this.version + '\n';
 
   // add non-standard marlin entry
-  if (this.key)
-    m3u8 += '#EXT-X-KEY:' + StringifyAttrList(this.key) + '\n';
+  if (this.key) {
+    var keys = util.isArray(this.key) ? this.key : [this.key];
+    keys.forEach(function(key) {
+      m3u8 += '#EXT-X-KEY:' + StringifyAttrList(key) + '\n';
+    });
+  }
 
   if (this.variant) {
     for (var group_id in this.groups) {
