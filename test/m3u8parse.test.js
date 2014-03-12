@@ -38,6 +38,16 @@ describe('M3U8Parse', function() {
     });
   })
 
+  it('should parse a v6 variant file', function(done) {
+  	var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v6.m3u8'));
+    m3u8parse(stream, function(err, index) {
+      should.not.exist(err);
+      should.exist(index);
+      index.variant.should.be.true;
+      done();
+    });
+  })
+
   it('should parse an iframe variant file', function(done) {
   	var stream = fs.createReadStream(path.join(fixtureDir, 'variant_iframe.m3u8'));
     m3u8parse(stream, function(err, index) {

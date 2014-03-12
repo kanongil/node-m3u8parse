@@ -30,8 +30,10 @@ function M3U8Playlist(obj) {
   this.i_frames_only = obj.i_frames_only || false; // V4
   this.target_duration = obj.target_duration || undefined;
   this.first_seq_no = obj.first_seq_no || 0;
-  this.type = obj.type; // V?
+  this.type = obj.type; // V3+
   this.ended = obj.ended || false;
+  this.discontinuity_sequence = obj.discontinuity_sequence || 0; // V6
+  this.start = clone(obj.start); // V6
 
   this.segments = [];
   if (obj.segments) {
@@ -149,6 +151,12 @@ M3U8Playlist.prototype.toString = function() {
 
     if (this.first_seq_no != 0)
       m3u8 += '#EXT-X-MEDIA-SEQUENCE:' + this.first_seq_no + '\n';
+
+    if (this.discontinuity_sequence != 0)
+      m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + this.discontinuity_sequence + '\n'; // soft V6
+
+    if (this.start && Object.keys(this.start).length)
+      m3u8 += '#EXT-X-START:' + StringifyAttrList(this.start) + '\n'; // soft V6
 
     if (this.version >= 4 && this.i_frames_only)
       m3u8 += '#EXT-X-I-FRAMES-ONLY:YES\n';
@@ -331,8 +339,14 @@ function M3U8Parse(stream, cb) {
     '#EXT-X-MEDIA-SEQUENCE': function(arg) {
       m3u8.first_seq_no = parseInt(arg, 10);
     },
+    '#EXT-X-DISCONTINUITY-SEQUENCE':function(arg) {
+      m3u8.discontinuity_sequence = parseInt(arg, 10);
+    },
     '#EXT-X-PLAYLIST-TYPE': function(arg) {
       m3u8.type = arg;
+    },
+    '#EXT-X-START': function(arg) {
+      m3u8.start = ParseAttrList(arg);
     },
     '#EXT-X-ENDLIST': function(arg) {
       m3u8.ended = true;
