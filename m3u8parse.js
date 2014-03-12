@@ -210,7 +210,7 @@ M3U8Segment.prototype.toString = function() {
     res += '#EXT-X-BYTERANGE:' + range + '\n';
   }
 
-  return res + '#EXTINF:' + this.duration.toFixed(3) + ',' + this.title + '\n' + this.uri + '\n';
+  return res + '#EXTINF:' + parseFloat(this.duration.toFixed(3)) + ',' + this.title + '\n' + this.uri + '\n';
 };
 
 // AttrList's are currently handled without any implicit knowledge of key/type mapping
