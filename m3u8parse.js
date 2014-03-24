@@ -358,7 +358,7 @@ function M3U8Parse(stream, cb) {
       meta.title = n.join(',');
 
       if (meta.duration <= 0)
-        return ReportError(new ParserError('Invalid duration', line, line_no));
+        return ReportError(new ParserError('Invalid duration', '#EXTINF:'+arg, line_no));
     },
     '#EXT-X-KEY': function(arg) {
       meta.key = ParseAttrList(arg);
