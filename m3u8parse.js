@@ -84,19 +84,45 @@ M3U8Playlist.prototype.isValidSeqNo = function(seqNo) {
   return (seqNo >= this.first_seq_no) && (seqNo <= this.lastSeqNo());
 };
 
-M3U8Playlist.prototype.dateForSeqNo = function(seqNo) {
-  var segment, targetSegment = this.getSegment(seqNo);
-  var elapsed = 0;
+function lastSegmentProperty(index, key, seqNo, incrFn) {
+  var segment;
+  while (segment = index.getSegment(seqNo--)) {
+    if (incrFn) incrFn(segment);
+    var val = segment[key];
+    if (val) return val;
+  }
+  return null;
+}
 
-  // walk backwards until we find a segment with program_time
-  while (segment = this.getSegment(seqNo--)) {
+M3U8Playlist.prototype.dateForSeqNo = function(seqNo) {
+  var elapsed = 0;
+  var program_time = lastSegmentProperty(this, 'program_time', seqNo, function(segment) {
     elapsed += segment.duration;
-    if (segment.program_time)
-      return new Date(segment.program_time.getTime() + (elapsed - targetSegment.duration) * 1000);
+  });
+
+  return program_time ? new Date(program_time.getTime() + (elapsed - this.getSegment(seqNo).duration) * 1000) : null;
+};
+
+M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
+  var key = lastSegmentProperty(this, 'key', seqNo);
+
+  if (key) {
+    key = clone(key);
+
+    var keyformat = 'identity';
+    if (this.version >= 5 && key.keyformat)
+      keyformat = key.keyformat;
+
+    if (key.method === 'AES-128' && keyformat === 'identity' && !key.iv) {
+      var iv = new Buffer(16);
+      iv.fill(0, 0, 8);
+      iv.writeUInt32BE(seqNo/0x100000000, 8, true);
+      iv.writeUInt32BE(seqNo, 12, true);
+      key.iv = iv.toString('hex');
+    }
   }
 
-  // nothing found
-  return null;
+  return key;
 };
 
 M3U8Playlist.prototype.getSegment = function(seqNo) {

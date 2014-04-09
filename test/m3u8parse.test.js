@@ -162,6 +162,28 @@ describe('M3U8Playlist', function() {
     })
   })
 
+  describe('#keyForSeqNo()', function() {
+    it('should return null for for out of bounds sequence numbers', function() {
+      should.not.exist(testIndex.keyForSeqNo(0));
+      should.not.exist(testIndex.keyForSeqNo("100"));
+      should.not.exist(testIndex.keyForSeqNo(10000));
+      should.not.exist(testIndex.keyForSeqNo("10000"));
+    })
+    it('should return null for for indexes with no key information', function() {
+      should.not.exist(variantIndex.keyForSeqNo(0));
+
+      var index = new m3u8parse.M3U8Playlist(testIndex);
+      delete index.segments[0].key;
+      should.not.exist(index.keyForSeqNo(7794));
+    })
+    it('should return correct value for numbers in range', function() {
+      testIndex.keyForSeqNo(7794).should.eql({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'00000000000000000000000000001e72'});
+      testIndex.keyForSeqNo(7795).should.eql({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'00000000000000000000000000001e73'});
+      testIndex.keyForSeqNo(7796).should.eql({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'00000000000000000000000000001e74'});
+      testIndex.keyForSeqNo(7797).should.eql({method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'00000000000000000000000000001e75'});
+    })
+  })
+
   describe('#getSegment()', function() {
     it('should return segment data for valid sequence numbers', function() {
       testIndex.getSegment("7794").should.be.an.instanceof(m3u8parse.M3U8Segment);
