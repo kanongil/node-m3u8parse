@@ -62,6 +62,7 @@ describe('M3U8Parse', function() {
 
 describe('M3U8Playlist', function() {
   var testIndex = null;
+  var testIndexAlt = null;
   var variantIndex = null;
 
   before(function(done) {
@@ -69,6 +70,15 @@ describe('M3U8Playlist', function() {
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       testIndex = index;
+      done();
+    });
+  })
+
+  before(function(done) {
+    var stream = fs.createReadStream(path.join(fixtureDir, 'enc-discont.m3u8'));
+    m3u8parse(stream, function(err, index) {
+      should.not.exist(err);
+      testIndexAlt = index;
       done();
     });
   })
@@ -140,13 +150,13 @@ describe('M3U8Playlist', function() {
   })
 
   describe('#dateForSeqNo()', function() {
-    it('should return null for for out of bounds sequence numbers', function() {
+    it('should return null for out of bounds sequence numbers', function() {
       should.not.exist(testIndex.dateForSeqNo(0));
       should.not.exist(testIndex.dateForSeqNo("100"));
       should.not.exist(testIndex.dateForSeqNo(10000));
       should.not.exist(testIndex.dateForSeqNo("10000"));
     })
-    it('should return null for for indexes with no date information', function() {
+    it('should return null for indexes with no date information', function() {
       should.not.exist(variantIndex.dateForSeqNo(0));
 
       var index = new m3u8parse.M3U8Playlist(testIndex);
@@ -159,6 +169,12 @@ describe('M3U8Playlist', function() {
       testIndex.dateForSeqNo(7795).should.eql(new Date('2013-10-29T11:34:15.833Z'));
       testIndex.dateForSeqNo(7796).should.eql(new Date('2013-10-29T11:34:30.833Z'));
       testIndex.dateForSeqNo(7797).should.eql(new Date('2013-10-29T11:34:44.000Z'));
+    })
+    it('should handle a discontinuity', function() {
+      testIndexAlt.dateForSeqNo(7794).should.eql(new Date('2013-10-29T11:34:13.000Z'));
+      should.not.exist(testIndexAlt.dateForSeqNo(7795));
+      should.not.exist(testIndexAlt.dateForSeqNo(7796));
+      testIndexAlt.dateForSeqNo(7797).should.eql(new Date('2013-10-29T11:34:44.000Z'));
     })
   })
 

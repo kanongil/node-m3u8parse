@@ -87,7 +87,10 @@ M3U8Playlist.prototype.isValidSeqNo = function(seqNo) {
 function lastSegmentProperty(index, key, seqNo, incrFn) {
   var segment;
   while (segment = index.getSegment(seqNo--)) {
-    if (incrFn) incrFn(segment);
+    if (incrFn) {
+      if (incrFn(segment))
+        return null;
+    }
     var val = segment[key];
     if (val) return val;
   }
@@ -98,6 +101,7 @@ M3U8Playlist.prototype.dateForSeqNo = function(seqNo) {
   var elapsed = 0;
   var program_time = lastSegmentProperty(this, 'program_time', seqNo, function(segment) {
     elapsed += segment.duration;
+    return segment.discontinuity; // abort on discontinuity
   });
 
   return program_time ? new Date(program_time.getTime() + (elapsed - this.getSegment(seqNo).duration) * 1000) : null;
