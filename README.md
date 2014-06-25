@@ -2,6 +2,14 @@
 
 Structural parsing of [Apple HTTP Live Streaming](http://tools.ietf.org/html/draft-pantos-http-live-streaming-11) `.m3u8` files.
 
+This module is tested and is used in production systems.
+
+## TODO
+
+ * Detailed `AttrList` tests.
+ * Validation option.
+ * `String`/`Buffer` input.
+
 #License
 (BSD 2-Clause License)
 
