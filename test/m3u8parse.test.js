@@ -1,5 +1,6 @@
 var fs = require('fs'),
     path = require('path'),
+    Readable = require('stream').Readable,
     should = require('should');
 
 var m3u8parse = require('../m3u8parse');
@@ -212,6 +213,23 @@ describe('M3U8Playlist', function() {
       should.not.exist(testIndex.getSegment(7798));
 
       should.not.exist(variantIndex.getSegment(0));
+    })
+  })
+
+  describe('#toString()', function() {
+    it('should output valid index files', function(done) {
+      var r = new Readable();
+      r._read = function() {};
+      r.push(testIndex.toString());
+      r.push(null);
+
+      // test that output string parses correctly
+      m3u8parse(r, function(err, index) {
+        should.not.exist(err);
+        should.exist(index);
+        testIndex.should.eql(index);
+        done();
+      });
     })
   })
 
