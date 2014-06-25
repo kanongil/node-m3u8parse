@@ -16,6 +16,32 @@ exports.M3U8Playlist = M3U8Playlist;
 exports.M3U8Segment = M3U8Segment;
 exports.ParserError = ParserError;
 
+// AttrList's are currently handled without any implicit knowledge of key/type mapping
+function ParseAttrList(input) {
+  // TODO: handle newline escapes in quoted-string's
+  var re = /(.+?)=((?:\".*?\")|.*?)(?:,|$)/g;
+//  var re = /(.+?)=(?:(?:\"(.*?)\")|(.*?))(?:,|$)/g;
+  var match, attrs = {};
+  while ((match = re.exec(input)) !== null)
+    attrs[match[1].toLowerCase()] = match[2];
+
+  debug('parsed attributes', attrs);
+  return attrs;
+}
+
+function StringifyAttrList(attrs) {
+  var res = '';
+  for (var key in attrs) {
+    var value = attrs[key];
+    if (value !== undefined && value !== null) {
+      if (res.length !== 0) res += ',';
+      // TODO: sanitize attr values?
+      res += key.toUpperCase() + '=' + value;
+    }
+  }
+  return res;
+}
+
 function M3U8Playlist(obj) {
   if (!(this instanceof M3U8Playlist))
     return new M3U8Playlist(obj);
@@ -67,7 +93,7 @@ M3U8Playlist.prototype.startSeqNo = function(full) {
   if (!this.isLive() || full) return this.first_seq_no;
 
   var duration = this.target_duration * 3;
-  for (var i=this.segments.length-1; i>0; i--) {
+  for (var i = ~~this.segments.length - 1; i > 0; i--) {
     duration -= this.segments[i].duration;
     if (duration < 0) break;
   }
@@ -86,7 +112,7 @@ M3U8Playlist.prototype.isValidSeqNo = function(seqNo) {
 
 function lastSegmentProperty(index, key, seqNo, incrFn) {
   var segment;
-  while (segment = index.getSegment(seqNo--)) {
+  while ((segment = index.getSegment(seqNo--)) !== null) {
     if (incrFn) {
       if (incrFn(segment))
         return null;
@@ -120,7 +146,7 @@ M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
     if (key.method === 'AES-128' && keyformat === 'identity' && !key.iv) {
       var iv = new Buffer(16);
       iv.fill(0, 0, 8);
-      iv.writeUInt32BE(seqNo/0x100000000, 8, true);
+      iv.writeUInt32BE(seqNo / 0x100000000, 8, true);
       iv.writeUInt32BE(seqNo, 12, true);
       key.iv = iv.toString('hex');
     }
@@ -131,10 +157,8 @@ M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
 
 M3U8Playlist.prototype.getSegment = function(seqNo) {
   // TODO: should we check for number type and throw if not?
-  var index = seqNo-this.first_seq_no;
-  if (index < 0 || index > this.segments.length)
-    return null;
-  return this.segments[index];
+  var index = seqNo - this.first_seq_no;
+  return this.segments[index] || null;
 };
 
 M3U8Playlist.prototype.toString = function() {
@@ -158,13 +182,14 @@ M3U8Playlist.prototype.toString = function() {
       });
     }
 
-    for (var program_id in this.iframes) {
+    var program_id;
+    for (program_id in this.iframes) {
       this.iframes[program_id].forEach(function (iframe) {
         m3u8 += '#EXT-X-I-FRAME-STREAM-INF:' + StringifyAttrList(iframe) + '\n';
       });
     }
 
-    for (var program_id in this.programs) {
+    for (program_id in this.programs) {
       this.programs[program_id].forEach(function (program) {
         m3u8 += '#EXT-X-STREAM-INF:' + StringifyAttrList(program.info) + '\n';
         m3u8 += program.uri + '\n';
@@ -179,11 +204,13 @@ M3U8Playlist.prototype.toString = function() {
     if (!this.allow_cache)
       m3u8 += '#EXT-X-ALLOW-CACHE:NO\n';
 
-    if (this.first_seq_no != 0)
-      m3u8 += '#EXT-X-MEDIA-SEQUENCE:' + this.first_seq_no + '\n';
+    var firstSeqNo = parseInt(this.first_seq_no, 10) || 0;
+    if (firstSeqNo !== 0)
+      m3u8 += '#EXT-X-MEDIA-SEQUENCE:' + firstSeqNo + '\n';
 
-    if (this.discontinuity_sequence != 0)
-      m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + this.discontinuity_sequence + '\n'; // soft V6
+    var discontinuitySequence = parseInt(this.discontinuity_sequence, 10) || 0;
+    if (discontinuitySequence !== 0)
+      m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + discontinuitySequence + '\n'; // soft V6
 
     if (this.start && Object.keys(this.start).length)
       m3u8 += '#EXT-X-START:' + StringifyAttrList(this.start) + '\n'; // soft V6
@@ -226,7 +253,7 @@ function M3U8Segment(uri, meta, version) {
 
 M3U8Segment.prototype.toString = function() {
   var res = '';
-  if (this.discontinuity) res += '#EXT-X-DISCONTINUITY\n'
+  if (this.discontinuity) res += '#EXT-X-DISCONTINUITY\n';
   if (this.program_time) {
     var program_time = this.program_time.toISOString ? this.program_time.toISOString() : this.program_time;
     res += '#EXT-X-PROGRAM-DATE-TIME:' + program_time + '\n';
@@ -242,32 +269,6 @@ M3U8Segment.prototype.toString = function() {
 
   return res + '#EXTINF:' + parseFloat(this.duration.toFixed(3)) + ',' + this.title + '\n' + this.uri + '\n';
 };
-
-// AttrList's are currently handled without any implicit knowledge of key/type mapping
-function ParseAttrList(input) {
-  // TODO: handle newline escapes in quoted-string's
-  var re = /(.+?)=((?:\".*?\")|.*?)(?:,|$)/g;
-//  var re = /(.+?)=(?:(?:\"(.*?)\")|(.*?))(?:,|$)/g;
-  var match, attrs = {};
-  while ((match = re.exec(input)) !== null)
-    attrs[match[1].toLowerCase()] = match[2];
-
-  debug('parsed attributes', attrs);
-  return attrs;
-}
-
-function StringifyAttrList(attrs) {
-  var res = '';
-  for (var key in attrs) {
-    var value = attrs[key];
-    if (value !== undefined && value !== null) {
-      if (res.length !== 0) res += ',';
-      // TODO: sanitize attr values?
-      res += key.toUpperCase() + '=' + value;
-    }
-  }
-  return res;
-}
 
 function M3U8Parse(stream, cb) {
   var m3u8 = new M3U8Playlist(),
@@ -293,7 +294,7 @@ function M3U8Parse(stream, cb) {
 
   function Complete() {
     if (line_no === 0)
-      return ReportError(new ParserError('No line data', '', -1))
+      return ReportError(new ParserError('No line data', '', -1));
     cleanup();
 //    m3u8.segments = m3u8.segments.slice(0,3); // temp hack
     cb(null, m3u8);
@@ -318,11 +319,11 @@ function M3U8Parse(stream, cb) {
     if (line_no === 1) {
       if (line !== '#EXTM3U')
         return ReportError(new ParserError('Missing required #EXTM3U header', line, line_no));
-      return;
+      return true;
     }
 
-    if (!line.length) return; // blank lines are ignored (3.1)
-        
+    if (!line.length) return true; // blank lines are ignored (3.1)
+
     if (line[0] === '#') {
       var matches = line.match(/^(#EXT[^:]*):?(.*)/);
       if (!matches)
@@ -332,7 +333,7 @@ function M3U8Parse(stream, cb) {
           arg = matches[2];
 
       if (!ParseExt(cmd, arg))
-        return ReportError(new ParserError('Unknown #EXT: '+cmd, line, line_no));
+        return ReportError(new ParserError('Unknown #EXT: ' + cmd, line, line_no));
     } else if (m3u8.variant) {
       var id = meta.info['program-id'];
       if (!(id in m3u8.programs))
@@ -348,6 +349,7 @@ function M3U8Parse(stream, cb) {
       m3u8.segments.push(new M3U8Segment(line, meta, m3u8.version));
       meta = {};
     }
+    return true;
   }
 
   // TODO: add more validation logic
@@ -355,16 +357,17 @@ function M3U8Parse(stream, cb) {
     '#EXT-X-VERSION': function(arg) {
       m3u8.version = parseInt(arg, 10);
 
+      var attrname;
       if (m3u8.version >= 4)
-        for (var attrname in extParserV4) { extParser[attrname] = extParser[attrname]; }
+        for (attrname in extParserV4) { extParser[attrname] = extParser[attrname]; }
       if (m3u8.version >= 5)
-        for (var attrname in extParserV5) { extParser[attrname] = extParser[attrname]; }
+        for (attrname in extParserV5) { extParser[attrname] = extParser[attrname]; }
     },
     '#EXT-X-TARGETDURATION': function(arg) {
       m3u8.target_duration = parseInt(arg, 10);
     },
     '#EXT-X-ALLOW-CACHE': function(arg) {
-      m3u8.allow_cache = (arg!=='NO');
+      m3u8.allow_cache = (arg !== 'NO');
     },
     '#EXT-X-MEDIA-SEQUENCE': function(arg) {
       m3u8.first_seq_no = parseInt(arg, 10);
@@ -378,7 +381,7 @@ function M3U8Parse(stream, cb) {
     '#EXT-X-START': function(arg) {
       m3u8.start = ParseAttrList(arg);
     },
-    '#EXT-X-ENDLIST': function(arg) {
+    '#EXT-X-ENDLIST': function() {
       m3u8.ended = true;
     },
 
@@ -388,7 +391,7 @@ function M3U8Parse(stream, cb) {
       meta.title = n.join(',');
 
       if (meta.duration <= 0)
-        return ReportError(new ParserError('Invalid duration', '#EXTINF:'+arg, line_no));
+        return ReportError(new ParserError('Invalid duration', '#EXTINF:' + arg, line_no));
     },
     '#EXT-X-KEY': function(arg) {
       meta.key = ParseAttrList(arg);
@@ -396,7 +399,7 @@ function M3U8Parse(stream, cb) {
     '#EXT-X-PROGRAM-DATE-TIME': function(arg) {
       meta.program_time = new Date(arg);
     },
-    '#EXT-X-DISCONTINUITY': function(arg) {
+    '#EXT-X-DISCONTINUITY': function() {
       meta.discontinuity = true;
     },
 
@@ -430,7 +433,7 @@ function M3U8Parse(stream, cb) {
   };
 
   var extParserV4 = {
-    '#EXT-X-I-FRAMES-ONLY': function(arg) {
+    '#EXT-X-I-FRAMES-ONLY': function() {
       m3u8.i_frames_only = true;
     },
     '#EXT-X-BYTERANGE': function(arg) {
@@ -439,13 +442,13 @@ function M3U8Parse(stream, cb) {
       if (n.length > 1)
         meta.byterange.offset = parseInt(n[1], 10);
     }
-  }
+  };
 
   var extParserV5 = {
     '#EXT-X-MAP': function(arg) {
       meta.map = ParseAttrList(arg);
     }
-  }
+  };
 }
 
 function ParserError(msg, line, line_no, constr) {

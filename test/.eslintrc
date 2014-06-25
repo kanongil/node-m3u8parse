@@ -1,0 +1,12 @@
+{
+    "env": {
+        "mocha": true,
+        "node": true
+    },
+    "rules": {
+        "quotes": 0,
+        "strict": 0,
+        "semi": 0,
+        "no-unused-expressions": 0
+    }
+}
