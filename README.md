@@ -5,7 +5,7 @@ Structural parsing of [Apple HTTP Live Streaming](http://tools.ietf.org/html/dra
 #License
 (BSD 2-Clause License)
 
-Copyright (c) 2013, Gil Pedersen &lt;gpdev@gpost.dk&gt;  
+Copyright (c) 2013-2014, Gil Pedersen &lt;gpdev@gpost.dk&gt;  
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met: 
