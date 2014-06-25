@@ -175,7 +175,51 @@ describe('M3U8Playlist', function() {
       testIndexAlt.dateForSeqNo(7794).should.eql(new Date('2013-10-29T11:34:13.000Z'));
       should.not.exist(testIndexAlt.dateForSeqNo(7795));
       should.not.exist(testIndexAlt.dateForSeqNo(7796));
-      testIndexAlt.dateForSeqNo(7797).should.eql(new Date('2013-10-29T11:34:44.000Z'));
+      testIndexAlt.dateForSeqNo(7797).should.eql(new Date('2013-10-20T19:34:44.000Z'));
+    })
+  })
+
+  describe('#seqNoForDate()', function() {
+    it('should return -1 for out of bounds dates', function() {
+      testIndex.seqNoForDate().should.equal(-1);
+      testIndex.seqNoForDate(0).should.equal(-1);
+      testIndex.seqNoForDate(true).should.equal(-1);
+      testIndex.seqNoForDate(new Date()).should.equal(-1);
+      testIndex.seqNoForDate(new Date('2013-10-29T11:34:12.999Z')).should.equal(-1);
+      testIndex.seqNoForDate(new Date('2013-10-29T12:34:59.000+0100')).should.equal(-1);
+      testIndex.seqNoForDate(Number.MAX_VALUE).should.equal(-1);
+      testIndex.seqNoForDate('2014-01-01', true).should.equal(-1);
+      testIndex.seqNoForDate(Infinity).should.equal(-1);
+    })
+
+    it('should return correct sequence numbers for in bound dates', function() {
+      testIndex.seqNoForDate(0, true).should.equal(7794);
+      testIndex.seqNoForDate(new Date('2013-10-29T11:34:12.999Z'), true).should.equal(7794);
+      testIndex.seqNoForDate(new Date('2013-10-29T11:34:13.000Z')).should.equal(7794);
+      testIndex.seqNoForDate(new Date('2013-10-29T11:34:13.000Z'), true).should.equal(7794);
+      testIndex.seqNoForDate(new Date('2013-10-29T11:34:15.832Z')).should.equal(7794);
+      testIndex.seqNoForDate(new Date('2013-10-29T11:34:15.832Z'), true).should.equal(7794);
+      testIndex.seqNoForDate(new Date('2013-10-29T11:34:15.833Z')).should.equal(7795);
+      testIndex.seqNoForDate(new Date('2013-10-29T11:34:15.833Z'), true).should.equal(7795);
+      testIndex.seqNoForDate('2013-10-29T11:34:18.000Z').should.equal(7795);
+      testIndex.seqNoForDate('2013-10-29T11:34:18.000Z', true).should.equal(7795);
+      testIndex.seqNoForDate(new Date('2013-10-29T12:34:43.999+0100')).should.equal(7796);
+      testIndex.seqNoForDate(new Date('2013-10-29T12:34:43.999+0100'), true).should.equal(7796);
+      testIndex.seqNoForDate(1383046484000).should.equal(7797);
+      testIndex.seqNoForDate(1383046484000, true).should.equal(7797);
+      testIndex.seqNoForDate(new Date('2013-10-29T12:34:58.999+0100')).should.equal(7797);
+      testIndex.seqNoForDate(new Date('2013-10-29T12:34:58.999+0100'), true).should.equal(7797);
+      testIndex.seqNoForDate(-Infinity, true).should.equal(7794);
+    })
+
+    it('should return correct sequence numbers for indexes with non-monotonic discontinuities', function() {
+      testIndexAlt.seqNoForDate(0, true).should.equal(7797);
+      testIndexAlt.seqNoForDate(new Date('2013-10-29T11:34:12.999Z'), true).should.equal(7794);
+      testIndexAlt.seqNoForDate(new Date('2013-10-29T11:34:13.000Z')).should.equal(7794);
+      testIndexAlt.seqNoForDate(new Date('2013-10-29T11:34:15.833Z')).should.equal(-1);
+      testIndexAlt.seqNoForDate(new Date('2013-10-29T11:34:15.833Z'), true).should.equal(-1);
+      testIndexAlt.seqNoForDate(new Date('2013-10-20T20:34:44.000+0100')).should.equal(7797);
+      testIndexAlt.seqNoForDate(new Date('2013-10-20'), true).should.equal(7797);
     })
   })
 

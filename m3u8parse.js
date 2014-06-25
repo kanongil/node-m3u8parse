@@ -109,6 +109,53 @@ M3U8Playlist.prototype.dateForSeqNo = function(seqNo) {
   return program_time ? new Date(program_time.getTime() + (elapsed - this.getSegment(seqNo).duration) * 1000) : null;
 };
 
+M3U8Playlist.prototype.seqNoForDate = function(date, findNearestAfter) {
+  if (typeof date === 'boolean') {
+    findNearestAfter = date;
+    date = null;
+  }
+
+  var startTime = date;
+  if (typeof date !== 'number')
+    startTime = date ? +new Date(date) : Date.now();
+
+  // if findNearestAfter is true, the first sequence number after the date is returned
+  findNearestAfter = !!findNearestAfter;
+
+  // no assumptions are made about monotonic time
+  var firstValid = { seqNo: -1, delta: null, duration: 0 };
+  var segmentEndTime = -1;
+
+  var segments = this.segments, count = ~~segments.length;
+  for (var idx = 0; idx < count; idx++) {
+    var segment = segments[idx];
+
+    if (segment.program_time) {
+      segmentEndTime = segment.program_time.getTime();
+    } if (segment.discontinuity) {
+      segmentEndTime = -1;
+    }
+
+    var segmentDuration = 1000 * segment.duration;
+    if (segmentEndTime !== -1 && segmentDuration > 0) {
+      segmentEndTime += segmentDuration;
+
+      // update firstValid
+      var delta = segmentEndTime - startTime - 1;
+      if (delta >= 0 && (firstValid.delta === null || delta < firstValid.delta || delta < segmentDuration)) {
+        firstValid.seqNo = this.first_seq_no + idx;
+        firstValid.delta = delta;
+        firstValid.duration = segmentDuration;
+      }
+    }
+  }
+
+  if (!findNearestAfter && firstValid.delta >= firstValid.duration)
+    return -1;
+
+  return firstValid.seqNo;
+};
+
 M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
   var key = lastSegmentProperty(this, 'key', seqNo);
 
