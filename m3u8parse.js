@@ -16,6 +16,7 @@ var exports = module.exports = M3U8Parse;
 
 exports.M3U8Playlist = M3U8Playlist;
 exports.M3U8Segment = M3U8Segment;
+exports.AttrList = AttrList;
 exports.ParserError = ParserError;
 
 function M3U8Playlist(obj) {
@@ -35,7 +36,7 @@ function M3U8Playlist(obj) {
   this.type = obj.type; // V3+
   this.ended = obj.ended || false;
   this.discontinuity_sequence = obj.discontinuity_sequence || 0; // V6
-  this.start = clone(obj.start); // V6
+  this.start = new AttrList(obj.start); // V6
 
   this.segments = [];
   if (obj.segments) {
@@ -158,7 +159,7 @@ M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
   var key = lastSegmentProperty(this, 'key', seqNo);
 
   if (key) {
-    key = clone(key);
+    key = new AttrList(key);
 
     var keyformat = 'identity';
     if (this.version >= 5 && key.keyformat)

@@ -41,11 +41,11 @@ function AttrList(attrs) {
 
   if (typeof attrs === 'string')
     attrs = ParseAttrList(attrs);
-  else
-    attrs = clone(attrs);
 
-  for (var attr in attrs)
-    this[attr] = attrs[attr];
+  for (var attr in attrs) {
+    var value =  attrs[attr] || '';
+    this[attr] = value.toString();
+  }
 }
 
 Object.defineProperty(AttrList.prototype, 'toString', {

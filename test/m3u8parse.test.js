@@ -3,7 +3,8 @@ var fs = require('fs'),
     Readable = require('stream').Readable,
     should = require('should');
 
-var m3u8parse = require('../m3u8parse');
+var m3u8parse = require('../m3u8parse'),
+    AttrList = require('../attrlist');
 
 var fixtureDir = path.join(__dirname, 'fixtures');
 
@@ -238,10 +239,10 @@ describe('M3U8Playlist', function() {
       should.not.exist(index.keyForSeqNo(7794));
     })
     it('should return correct value for numbers in range', function() {
-      testIndex.keyForSeqNo(7794).should.eql({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'00000000000000000000000000001e72'});
-      testIndex.keyForSeqNo(7795).should.eql({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'00000000000000000000000000001e73'});
-      testIndex.keyForSeqNo(7796).should.eql({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'00000000000000000000000000001e74'});
-      testIndex.keyForSeqNo(7797).should.eql({method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'00000000000000000000000000001e75'});
+      testIndex.keyForSeqNo(7794).should.eql(new AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'00000000000000000000000000001e72'}));
+      testIndex.keyForSeqNo(7795).should.eql(new AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'00000000000000000000000000001e73'}));
+      testIndex.keyForSeqNo(7796).should.eql(new AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'00000000000000000000000000001e74'}));
+      testIndex.keyForSeqNo(7797).should.eql(new AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'00000000000000000000000000001e75'}));
     })
   })
 
