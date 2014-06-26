@@ -231,9 +231,11 @@ M3U8Playlist.prototype.toString = function() {
     if (firstSeqNo !== 0)
       m3u8 += '#EXT-X-MEDIA-SEQUENCE:' + firstSeqNo + '\n';
 
-    var discontinuitySequence = parseInt(this.discontinuity_sequence, 10) || 0;
-    if (discontinuitySequence !== 0)
-      m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + discontinuitySequence + '\n'; // soft V6
+    if (this.type !== this.PlaylistType.VOD && this.type !== this.PlaylistType.EVENT) {
+      var discontinuitySequence = parseInt(this.discontinuity_sequence, 10) || 0;
+      if (discontinuitySequence !== 0)
+        m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + discontinuitySequence + '\n'; // soft V6
+    }
 
     if (this.start && Object.keys(this.start).length)
       m3u8 += '#EXT-X-START:' + AttrList(this.start) + '\n'; // soft V6
