@@ -48,6 +48,62 @@ function AttrList(attrs) {
   }
 }
 
+// no validation is performed on these helpers and they never fail on invalid input
+Object.defineProperties(AttrList.prototype, {
+  decimalInteger: { value: function(attrName, value) {
+    var name = attrName.toLowerCase();
+    if (arguments.length > 1) {
+      this[name] = '' + Math.floor(value);
+    }
+    return parseInt(this[name], 10);
+  }},
+
+  hexadecimalInteger: { value: function(attrName, value) {
+    var name = attrName.toLowerCase();
+    if (arguments.length > 1) {
+      this[name] = '0x' + Math.floor(value).toString(16);
+    }
+    return parseInt(this[name], 16);
+  }},
+
+  decimalFloatingPoint: { value: function(attrName, value) {
+    var name = attrName.toLowerCase();
+    if (arguments.length > 1) {
+      this[name] = '' + value;
+    }
+    return parseFloat(this[name]);
+  }},
+
+  quotedString: { value: function(attrName, value) {
+    var name = attrName.toLowerCase();
+    if (arguments.length > 1) {
+      this[name] = '"' + value + '"';
+    }
+    return this[name].slice(1, -1);
+  }},
+
+  enumeratedString: { value: function(attrName, value) {
+    var name = attrName.toLowerCase();
+    if (arguments.length > 1) {
+      this[name] = value;
+    }
+    return this[name];
+  }},
+
+  decimalResolution: { value: function(attrName, value) {
+    var name = attrName.toLowerCase();
+    if (arguments.length > 1) {
+      value = value || {};
+      this[name] = '' + Math.floor(value.width) + 'x' + Math.floor(value.height);
+    }
+    var res = /(\d+)x(\d+)/.exec(this[name]);
+    return {
+      width: res ? res[1] : null,
+      height: res ? res[2] : null,
+    };
+  }},
+});
+
 Object.defineProperty(AttrList.prototype, 'toString', {
   value: function() {
     return StringifyAttrList(this);
