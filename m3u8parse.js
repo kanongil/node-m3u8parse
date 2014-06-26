@@ -89,10 +89,8 @@ M3U8Playlist.prototype.isValidSeqNo = function(seqNo) {
 function lastSegmentProperty(index, key, seqNo, incrFn) {
   var segment;
   while ((segment = index.getSegment(seqNo--)) !== null) {
-    if (incrFn) {
-      if (incrFn(segment))
-        return null;
-    }
+    if (incrFn && incrFn(segment))
+      return null;
     var val = segment[key];
     if (val) return val;
   }
