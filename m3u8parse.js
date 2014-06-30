@@ -179,10 +179,19 @@ M3U8Playlist.prototype.mapForSeqNo = function(seqNo) {
   });
 };
 
-M3U8Playlist.prototype.getSegment = function(seqNo) {
+M3U8Playlist.prototype.getSegment = function(seqNo, independent) {
   // TODO: should we check for number type and throw if not?
   var index = seqNo - this.first_seq_no;
-  return this.segments[index] || null;
+  var segment = this.segments[index] || null;
+  if (independent && segment) {
+    segment = new M3U8Segment(segment);
+    // EXT-X-KEY, EXT-X-MAP, EXT-X-PROGRAM-DATE-TIME needs to be individualized
+    segment.program_time = this.dateForSeqNo(seqNo);
+    segment.key = this.keyForSeqNo(seqNo);
+    if (this.version >= 5)
+      segment.map = this.mapForSeqNo(seqNo);
+  }
+  return segment;
 };
 
 M3U8Playlist.prototype.toString = function() {
