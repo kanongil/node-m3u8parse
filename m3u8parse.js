@@ -173,6 +173,12 @@ M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
   return key;
 };
 
+M3U8Playlist.prototype.mapForSeqNo = function(seqNo) {
+  return lastSegmentProperty(this, 'map', seqNo, function(segment) {
+    return segment.discontinuity; // abort on discontinuity
+  });
+};
+
 M3U8Playlist.prototype.getSegment = function(seqNo) {
   // TODO: should we check for number type and throw if not?
   var index = seqNo - this.first_seq_no;
