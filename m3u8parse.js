@@ -37,6 +37,7 @@ function M3U8Playlist(obj) {
   this.ended = obj.ended || false;
   this.discontinuity_sequence = obj.discontinuity_sequence || 0; // V6
   this.start = new AttrList(obj.start); // V6
+  this.independent_segments = obj.independent_segments; // V6
 
   this.segments = [];
   if (obj.segments) {
@@ -234,6 +235,9 @@ M3U8Playlist.prototype.toString = function() {
     if (this.start && Object.keys(this.start).length)
       m3u8 += '#EXT-X-START:' + AttrList(this.start) + '\n'; // soft V6
 
+    if (this.independent_segments)
+      m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n'; // soft V6
+
     if (this.version >= 4 && this.i_frames_only)
       m3u8 += '#EXT-X-I-FRAMES-ONLY:YES\n';
   }
@@ -399,6 +403,9 @@ function M3U8Parse(stream, cb) {
     },
     '#EXT-X-START': function(arg) {
       m3u8.start = new AttrList(arg);
+    },
+    '#EXT-X-INDEPENDENT-SEGMENTS': function() {
+      m3u8.independent_segments = true;
     },
     '#EXT-X-ENDLIST': function() {
       m3u8.ended = true;
