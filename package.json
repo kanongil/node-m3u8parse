@@ -15,6 +15,7 @@
   "author": "Gil Pedersen <gpdev@gpost.dk>",
   "license": "BSD",
   "dependencies": {
+    "bignumber.js": "^1.4.1",
     "carrier": "~0.1.10",
     "clone": "~0.1.9"
   },

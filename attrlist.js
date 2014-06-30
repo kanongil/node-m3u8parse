@@ -1,6 +1,7 @@
 "use strict";
 
-var clone = require('clone');
+var clone = require('clone'),
+    BigNumber = require('bignumber.js');
 
 var debug = function () {};
 try {
@@ -53,17 +54,54 @@ Object.defineProperties(AttrList.prototype, {
   decimalInteger: { value: function(attrName, value) {
     var name = attrName.toLowerCase();
     if (arguments.length > 1) {
-      this[name] = '' + Math.floor(value);
+      if (Buffer.isBuffer(value)) {
+        this[name] = new BigNumber(value.toString('hex'), 16).toString(10);
+      } else {
+        this[name] = '' + Math.floor(value);
+      }
     }
-    return parseInt(this[name], 10);
+    try {
+      var stringValue = new BigNumber(this[name] || '0').toString(16);
+      stringValue = ((stringValue.length & 1) ? '0' : '') + stringValue;
+      return new Buffer(stringValue, 'hex');
+    } catch (e) {
+      return new Buffer();
+    }
   }},
 
   hexadecimalInteger: { value: function(attrName, value) {
     var name = attrName.toLowerCase();
     if (arguments.length > 1) {
-      this[name] = '0x' + Math.floor(value).toString(16);
+      if (Buffer.isBuffer(value))
+        this[name] = '0x' + value.toString('hex');
+      else
+        this[name] = '0x' + Math.floor(value).toString(16);
     }
-    return parseInt(this[name], 16);
+    var stringValue = (this[name] || '0x').slice(2);
+    stringValue = ((stringValue.length & 1) ? '0' : '') + stringValue;
+    return new Buffer(stringValue, 'hex');
+  }},
+
+  decimalIntegerAsNumber: { value: function(attrName, value) {
+    var name = attrName.toLowerCase();
+    if (arguments.length > 1)
+      this.decimalInteger(name, value);
+
+    var intValue = parseInt(this[name], 10);
+    if (intValue >= Number.MAX_VALUE)
+      throw new RangeError('Value is to large to represent without loss of precision');
+    return intValue;
+  }},
+
+  hexadecimalIntegerAsNumber: { value: function(attrName, value) {
+    var name = attrName.toLowerCase();
+    if (arguments.length > 1)
+      this.hexadecimalInteger(name, value);
+
+    var intValue = parseInt(this[name], 16);
+    if (intValue >= Number.MAX_VALUE)
+      throw new RangeError('Value is to large to represent without loss of precision');
+    return intValue;
   }},
 
   decimalFloatingPoint: { value: function(attrName, value) {
