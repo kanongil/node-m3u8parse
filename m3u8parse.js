@@ -163,15 +163,10 @@ M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
 
     var keyformat = 'identity';
     if (this.version >= 5 && key.keyformat)
-      keyformat = key.keyformat;
+      keyformat = key.enumeratedString('keyformat');
 
-    if (key.method === 'AES-128' && keyformat === 'identity' && !key.iv) {
-      var iv = new Buffer(16);
-      iv.fill(0, 0, 8);
-      iv.writeUInt32BE(seqNo / 0x100000000, 8, true);
-      iv.writeUInt32BE(seqNo, 12, true);
-      key.iv = iv.toString('hex');
-    }
+    if (key.enumeratedString('method') === 'AES-128' && keyformat === 'identity' && !key.iv)
+      key.hexadecimalInteger('iv', seqNo);
   }
 
   return key;
