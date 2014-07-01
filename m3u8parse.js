@@ -165,7 +165,7 @@ M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
     return null;
 
   var keyformat = (this.version >= 5 && key.keyformat) ? key.enumeratedString('keyformat') : 'identity';
-  if (keymethod === 'AES-128' && keyformat === 'identity' && !key.iv)
+  if (keyformat === 'identity' && !key.iv)
     key.hexadecimalInteger('iv', seqNo);
 
   return key;
