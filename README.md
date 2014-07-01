@@ -1,8 +1,12 @@
 # M3U8Parse
 
-Structural parsing of [Apple HTTP Live Streaming](http://tools.ietf.org/html/draft-pantos-http-live-streaming-11) `.m3u8` files.
+Structural parsing of [Apple HTTP Live Streaming](http://tools.ietf.org/html/draft-pantos-http-live-streaming-13) `.m3u8` files.
 
 This module is tested and is used in production systems.
+
+## Known Issues
+
+ * Indexes with more than one `EXT-X-KEY` entry per segment are not supported.
 
 ## TODO
 

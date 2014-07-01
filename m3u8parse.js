@@ -156,19 +156,17 @@ M3U8Playlist.prototype.seqNoForDate = function(date, findNearestAfter) {
   return firstValid.seqNo;
 };
 
+// TODO: support multiple key entries for a single segment - probably requires a version bump
 M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
-  var key = lastSegmentProperty(this, 'key', seqNo);
+  var key = new AttrList(lastSegmentProperty(this, 'key', seqNo)),
+      keymethod = key.enumeratedString('method');
 
-  if (key) {
-    key = new AttrList(key);
+  if (!keymethod || keymethod === 'NONE')
+    return null;
 
-    var keyformat = 'identity';
-    if (this.version >= 5 && key.keyformat)
-      keyformat = key.enumeratedString('keyformat');
-
-    if (key.enumeratedString('method') === 'AES-128' && keyformat === 'identity' && !key.iv)
-      key.hexadecimalInteger('iv', seqNo);
-  }
+  var keyformat = (this.version >= 5 && key.keyformat) ? key.enumeratedString('keyformat') : 'identity';
+  if (keymethod === 'AES-128' && keyformat === 'identity' && !key.iv)
+    key.hexadecimalInteger('iv', seqNo);
 
   return key;
 };
@@ -190,6 +188,7 @@ M3U8Playlist.prototype.getSegment = function(seqNo, independent) {
     segment.key = this.keyForSeqNo(seqNo);
     if (this.version >= 5)
       segment.map = this.mapForSeqNo(seqNo);
+    // note: 'uri' is not resolved to an absolute url, since it principally opaque
   }
   return segment;
 };

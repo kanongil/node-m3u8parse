@@ -226,9 +226,9 @@ describe('M3U8Playlist', function() {
   describe('#keyForSeqNo()', function() {
     it('should return null for for out of bounds sequence numbers', function() {
       should.not.exist(testIndex.keyForSeqNo(0));
-      should.not.exist(testIndex.keyForSeqNo("100"));
+      should.not.exist(testIndexAlt.keyForSeqNo("100"));
       should.not.exist(testIndex.keyForSeqNo(10000));
-      should.not.exist(testIndex.keyForSeqNo("10000"));
+      should.not.exist(testIndexAlt.keyForSeqNo("10000"));
     })
     it('should return null for for indexes with no key information', function() {
       should.not.exist(variantIndex.keyForSeqNo(0));
@@ -242,6 +242,9 @@ describe('M3U8Playlist', function() {
       testIndex.keyForSeqNo(7795).should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e73'}));
       testIndex.keyForSeqNo(7796).should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e74'}));
       testIndex.keyForSeqNo(7797).should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x1e75'}));
+   })
+    it('should return null after method=NONE', function() {
+      should.not.exist(testIndexAlt.keyForSeqNo(7795));
     })
   })
 
