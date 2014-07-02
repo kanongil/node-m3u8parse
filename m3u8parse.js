@@ -349,10 +349,6 @@ function M3U8Parse(stream, cb) {
     return true;
   }
   
-  function unquote(str) {
-    return str.slice(1,-1);
-  }
-
   function ParseLine(line) {
     line_no += 1;
 
@@ -375,7 +371,7 @@ function M3U8Parse(stream, cb) {
       if (!ParseExt(cmd, arg))
         return ReportError(new ParserError('Unknown #EXT: ' + cmd, line, line_no));
     } else if (m3u8.variant) {
-      var id = meta.info['program-id'];
+      var id = m3u8.version < 6 ? meta.info.decimalIntegerAsNumber('program-id') : null;
       if (!(id in m3u8.programs))
         m3u8.programs[id] = [];
 
@@ -454,7 +450,7 @@ function M3U8Parse(stream, cb) {
     // variant v4 since variant streams are not required to specify version
     '#EXT-X-MEDIA': function(arg) {
       var attrs = new AttrList(arg),
-          id = unquote(attrs['group-id']);
+          id = attrs.quotedString('group-id');
 
       if (!(id in m3u8.groups)) {
         m3u8.groups[id] = [];
@@ -464,7 +460,7 @@ function M3U8Parse(stream, cb) {
     },
     '#EXT-X-I-FRAME-STREAM-INF': function(arg) {
       var attrs = new AttrList(arg),
-          id = unquote(attrs['program-id']);
+          id = this.version < 6 ? attrs.decimalIntegerAsNumber('program-id') : null;
 
       m3u8.variant = true;
 
