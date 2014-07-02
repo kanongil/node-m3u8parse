@@ -46,13 +46,10 @@ function M3U8Playlist(obj) {
   }
 
   // for variant streams
-  this.programs = clone(obj.programs) || {};
-  Object.keys(this.programs).forEach(function(id) {
-    var list = this.programs[id];
-    list.forEach(function(program) {
-      if (program.info) program.info = new AttrList(program.info);
-    });
-  }, this);
+  this.programs = clone(obj.programs) || [];
+  this.programs.forEach(function(program) {
+    if (program.info) program.info = new AttrList(program.info);
+  });
 
   this.groups = clone(obj.groups) || {};
   Object.keys(this.groups).forEach(function(id) {
@@ -61,12 +58,9 @@ function M3U8Playlist(obj) {
       list[idx] = new AttrList(list[idx]);
   }, this);
 
-  this.iframes = clone(obj.iframes) || {}; // V4
-  Object.keys(this.iframes).forEach(function(id) {
-    var list = this.iframes[id];
-    for (var idx = 0; idx < list.length; idx++)
-      list[idx] = new AttrList(list[idx]);
-  }, this);
+  this.iframes = clone(obj.iframes) || []; // V4
+  for (var idx = 0; idx < this.iframes.length; idx++)
+    this.iframes[idx] = new AttrList(this.iframes[idx]);
 
   this.data = clone(obj.data) || {}; // V7
   Object.keys(this.data).forEach(function(id) {
@@ -312,34 +306,26 @@ M3U8Playlist.prototype.toString = function() {
     m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n'; // soft V6
 
   if (this.variant) {
-    var dataId, groupId, programId;
-
-    for (dataId in this.data) {  // soft V7
+    for (var dataId in this.data) {  // soft V7
       this.data[dataId].forEach(function (data) {
         m3u8 += '#EXT-X-SESSION-DATA:' + new AttrList(data) + '\n';
       });
     }
 
-    for (groupId in this.groups) {
+    for (var groupId in this.groups) {
       this.groups[groupId].forEach(function (group) {
         m3u8 += '#EXT-X-MEDIA:' + new AttrList(group) + '\n';
       });
     }
 
-    var iframes = util.isArray(this.iframes) ? { null: this.iframes } : this.iframes;
-    for (programId in iframes) {
-      iframes[programId].forEach(function (iframe) {
-        m3u8 += '#EXT-X-I-FRAME-STREAM-INF:' + streamInfAttrs(iframe) + '\n';
-      });
-    }
+    this.iframes.forEach(function (iframe) {
+      m3u8 += '#EXT-X-I-FRAME-STREAM-INF:' + streamInfAttrs(iframe) + '\n';
+    });
 
-    var programs = util.isArray(this.programs) ? { null: this.programs } : this.programs;
-    for (programId in programs) {
-      programs[programId].forEach(function (program) {
-        m3u8 += '#EXT-X-STREAM-INF:' + streamInfAttrs(program.info) + '\n';
-        m3u8 += program.uri + '\n';
-      });
-    }
+    this.programs.forEach(function (program) {
+      m3u8 += '#EXT-X-STREAM-INF:' + streamInfAttrs(program.info) + '\n';
+      m3u8 += program.uri + '\n';
+    });
   }
 
   // add vendor extensions
@@ -494,14 +480,8 @@ function M3U8Parse(stream, options, cb) {
       if (!ParseExt(cmd, arg))
         return debug('ignoring unknown #EXT:' + cmd, line_no);
     } else if (m3u8.variant) {
-      var id = meta.info.decimalIntegerAsNumber('program-id');
-      if (isNaN(id)) id = null;
-
-      if (!(id in m3u8.programs))
-        m3u8.programs[id] = [];
-
       meta.uri = line;
-      m3u8.programs[id].push(meta);
+      m3u8.programs.push(meta);
       meta = {};
     } else {
       if (!('duration' in meta))
@@ -585,16 +565,8 @@ function M3U8Parse(stream, options, cb) {
       m3u8.groups[id].push(attrs);
     },
     '#EXT-X-I-FRAME-STREAM-INF': function(arg) {
-      var attrs = new AttrList(arg),
-          id = attrs.decimalIntegerAsNumber('program-id');
-      if (isNaN(id)) id = null;
-
       m3u8.variant = true;
-
-      if (!(id in m3u8.iframes))
-        m3u8.iframes[id] = [];
-
-      m3u8.iframes[id].push(attrs);
+      m3u8.iframes.push(new AttrList(arg));
     },
     '#EXT-X-SESSION-DATA': function(arg) {
       var attrs = new AttrList(arg),
