@@ -208,21 +208,24 @@ M3U8Playlist.prototype.toString = function() {
   }
 
   if (this.variant) {
-    for (var group_id in this.groups) {
-      this.groups[group_id].forEach(function (group) {
+    var groupId, programId;
+
+    for (groupId in this.groups) {
+      this.groups[groupId].forEach(function (group) {
         m3u8 += '#EXT-X-MEDIA:' + AttrList(group) + '\n';
       });
     }
 
-    var program_id;
-    for (program_id in this.iframes) {
-      this.iframes[program_id].forEach(function (iframe) {
+    var iframes = util.isArray(this.iframes) ? { null: this.iframes } : this.iframes;
+    for (programId in iframes) {
+      iframes[programId].forEach(function (iframe) {
         m3u8 += '#EXT-X-I-FRAME-STREAM-INF:' + AttrList(iframe) + '\n';
       });
     }
 
-    for (program_id in this.programs) {
-      this.programs[program_id].forEach(function (program) {
+    var programs = util.isArray(this.programs) ? { null: this.programs } : this.programs;
+    for (programId in programs) {
+      programs[programId].forEach(function (program) {
         m3u8 += '#EXT-X-STREAM-INF:' + AttrList(program.info) + '\n';
         m3u8 += program.uri + '\n';
       });
