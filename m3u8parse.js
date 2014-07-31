@@ -50,6 +50,10 @@ function M3U8Playlist(obj) {
   this.programs = clone(obj.programs) || {};
   this.groups = clone(obj.groups) || {};
   this.iframes = clone(obj.iframes) || {}; // V4
+
+  // custom vendor extensions
+  if (obj.vendor)
+    this.vendor = clone(obj.vendor);
 }
 
 M3U8Playlist.prototype.PlaylistType = {
@@ -259,6 +263,15 @@ M3U8Playlist.prototype.toString = function() {
       m3u8 += '#EXT-X-I-FRAMES-ONLY:YES\n';
   }
 
+  // add vendor extensions
+  for (var ext in (this.vendor || {})) {
+    var value = this.vendor[ext];
+    m3u8 += ext;
+    if (value !== null && typeof value !== 'undefined')
+      m3u8 += ':' + value;
+    m3u8 += '\n';
+  }
+
   this.segments.forEach(function (segment) {
     m3u8 += segment.toString();
   });
@@ -289,6 +302,10 @@ function M3U8Segment(uri, meta, version) {
 
   if (version >= 5 && meta.map)
     this.map = meta.map;
+
+  // custom vendor extensions
+  if (meta.vendor)
+    this.vendor = clone(meta.vendor);
 }
 
 M3U8Segment.prototype.toString = function() {
@@ -307,13 +324,29 @@ M3U8Segment.prototype.toString = function() {
     res += '#EXT-X-BYTERANGE:' + range + '\n';
   }
 
+  // add vendor extensions
+  for (var ext in (this.vendor || {})) {
+    var value = this.vendor[ext];
+    res += ext;
+    if (value !== null && typeof value !== 'undefined')
+      res += ':' + value;
+    res += '\n';
+  }
+
   return res + '#EXTINF:' + parseFloat(this.duration.toFixed(3)) + ',' + this.title + '\n' + this.uri + '\n';
 };
 
-function M3U8Parse(stream, cb) {
+function M3U8Parse(stream, options, cb) {
   var m3u8 = new M3U8Playlist(),
       line_no = 0,
       meta = {};
+
+  if (typeof options === 'function') {
+    cb = options;
+    options = {};
+  }
+
+  var extensions = clone(options.extensions || {});
 
   var cr = carrier.carry(stream);
   cr.on('line', ParseLine);
@@ -341,6 +374,15 @@ function M3U8Parse(stream, cb) {
   }
 
   function ParseExt(cmd, arg) {
+    // parse vendor extensions
+    if (cmd in extensions) {
+      var extObj = options.extensions[cmd] ? meta : m3u8;
+      if (!extObj.vendor) extObj.vendor = {};
+
+      extObj.vendor[cmd] = arg;
+      return true;
+    }
+
     if (!(cmd in extParser))
       return false;
 
@@ -361,12 +403,12 @@ function M3U8Parse(stream, cb) {
     if (!line.length) return true; // blank lines are ignored (3.1)
 
     if (line[0] === '#') {
-      var matches = line.match(/^(#EXT[^:]*):?(.*)/);
+      var matches = /^(#EXT[^:]*)(:?.*)$/.exec(line);
       if (!matches)
         return debug('ignoring comment', line);
 
       var cmd = matches[1],
-          arg = matches[2];
+          arg = matches[2].length > 1 ? matches[2].slice(1) : null;
 
       if (!ParseExt(cmd, arg))
         return debug('ignoring unknown #EXT:' + cmd, line_no);

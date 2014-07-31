@@ -14,6 +14,7 @@ http://media.example.com/fileSequence52-A.ts
 #EXTINF:15.0,
 http://media.example.com/fileSequence52-B.ts
 #EXTINF:13.333,
+#EXT-Y-META-EXTENSION:w00t
 http://media.example.com/fileSequence52-C.ts
 #EXT-X-PROGRAM-DATE-TIME:2013-10-29T12:34:44.000+0100
 #EXT-X-KEY:METHOD=AES-128,URI="https://priv.example.com/key.php?r=53"

@@ -59,6 +59,21 @@ describe('M3U8Parse', function() {
     });
   })
 
+  it('should parse vendor extensions', function(done) {
+    var stream = fs.createReadStream(path.join(fixtureDir, 'enc.m3u8'));
+    m3u8parse(stream, { extensions: {'#EXT-X-UNKNOWN-EXTENSION':false, '#EXT-Y-META-EXTENSION':true} }, function(err, index) {
+      should.not.exist(err);
+      should.exist(index);
+
+      should.exist(index.vendor);
+      index.vendor.should.eql({ '#EXT-X-UNKNOWN-EXTENSION': null });
+
+      should.exist(index.segments[2].vendor);
+      index.segments[2].vendor.should.eql({ '#EXT-Y-META-EXTENSION': 'w00t' });
+      done();
+    });
+  })
+
 })
 
 describe('M3U8Playlist', function() {
@@ -277,6 +292,7 @@ describe('M3U8Playlist', function() {
   })
 
   describe('#toString()', function() {
+
     it('should output valid index files', function(done) {
       var r = new Readable();
       r._read = function() {};
@@ -291,6 +307,17 @@ describe('M3U8Playlist', function() {
         done();
       });
     })
+
+    it('should handle vendor extensions', function() {
+      var index = m3u8parse.M3U8Playlist();
+
+      index.variant = true;
+      index.vendor = {
+        '#EXT-MY-TEST': 'yeah!'
+      };
+      index.toString().should.equal('#EXTM3U\n#EXT-MY-TEST:yeah!\n')
+    })
+
   })
 
 })
