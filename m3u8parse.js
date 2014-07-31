@@ -371,7 +371,9 @@ function M3U8Parse(stream, cb) {
       if (!ParseExt(cmd, arg))
         return debug('ignoring unknown #EXT:' + cmd, line_no);
     } else if (m3u8.variant) {
-      var id = m3u8.version < 6 ? meta.info.decimalIntegerAsNumber('program-id') : null;
+      var id = meta.info.decimalIntegerAsNumber('program-id');
+      if (isNaN(id)) id = null;
+
       if (!(id in m3u8.programs))
         m3u8.programs[id] = [];
 
@@ -460,7 +462,8 @@ function M3U8Parse(stream, cb) {
     },
     '#EXT-X-I-FRAME-STREAM-INF': function(arg) {
       var attrs = new AttrList(arg),
-          id = this.version < 6 ? attrs.decimalIntegerAsNumber('program-id') : null;
+          id = attrs.decimalIntegerAsNumber('program-id');
+      if (isNaN(id)) id = null;
 
       m3u8.variant = true;
 
