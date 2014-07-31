@@ -369,7 +369,7 @@ function M3U8Parse(stream, cb) {
           arg = matches[2];
 
       if (!ParseExt(cmd, arg))
-        return ReportError(new ParserError('Unknown #EXT: ' + cmd, line, line_no));
+        return debug('ignoring unknown #EXT:' + cmd, line_no);
     } else if (m3u8.variant) {
       var id = m3u8.version < 6 ? meta.info.decimalIntegerAsNumber('program-id') : null;
       if (!(id in m3u8.programs))
