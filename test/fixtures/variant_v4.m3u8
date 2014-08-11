@@ -10,3 +10,4 @@ mid/video-only.m3u8
 hi/video-only.m3u8
 #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=65000,CODECS="mp4a.40.5",AUDIO="aac"
 main/english-audio.m3u8
+#EXT-X-MEDIA:TYPE=TEST

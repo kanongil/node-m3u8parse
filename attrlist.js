@@ -117,7 +117,8 @@ Object.defineProperties(AttrList.prototype, {
     if (arguments.length > 1) {
       this[name] = '"' + value + '"';
     }
-    return this[name].slice(1, -1);
+    var val = this[name];
+    return val ? val.slice(1, -1) : undefined;
   }},
 
   enumeratedString: { value: function(attrName, value) {

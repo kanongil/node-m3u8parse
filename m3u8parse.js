@@ -390,7 +390,7 @@ function M3U8Parse(stream, options, cb) {
     extParser[cmd](arg);
     return true;
   }
-  
+
   function ParseLine(line) {
     line_no += 1;
 
@@ -494,11 +494,12 @@ function M3U8Parse(stream, options, cb) {
     // variant v4 since variant streams are not required to specify version
     '#EXT-X-MEDIA': function(arg) {
       var attrs = new AttrList(arg),
-          id = attrs.quotedString('group-id');
+          id = attrs.quotedString('group-id') || '#';
 
       if (!(id in m3u8.groups)) {
         m3u8.groups[id] = [];
-        m3u8.groups[id].type = attrs.type;
+        if (id !== '#')
+          m3u8.groups[id].type = attrs.type;
       }
       m3u8.groups[id].push(attrs);
     },

@@ -308,6 +308,21 @@ describe('M3U8Playlist', function() {
       });
     })
 
+    it('should output valid variant files', function(done) {
+      var r = new Readable();
+      r._read = function() {};
+      r.push(variantIndex.toString());
+      r.push(null);
+
+      // test that output string parses correctly
+      m3u8parse(r, function(err, index) {
+        should.not.exist(err);
+        should.exist(index);
+        variantIndex.should.eql(index);
+        done();
+      });
+    })
+
     it('should handle vendor extensions', function() {
       var index = m3u8parse.M3U8Playlist();
 
