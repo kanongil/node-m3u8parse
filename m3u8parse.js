@@ -298,10 +298,10 @@ function M3U8Segment(uri, meta, version) {
   if (meta.program_time)
     this.program_time = meta.program_time;
   if (meta.key)
-    this.key = meta.key;
+    this.key = new AttrList(meta.key);
 
   if (version >= 5 && meta.map)
-    this.map = meta.map;
+    this.map = new AttrList(meta.map);
 
   // custom vendor extensions
   if (meta.vendor)
