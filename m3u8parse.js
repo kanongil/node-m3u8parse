@@ -48,8 +48,26 @@ function M3U8Playlist(obj) {
 
   // for variant streams
   this.programs = clone(obj.programs) || {};
+  Object.keys(this.programs).forEach(function(id) {
+    var list = this.programs[id];
+    list.forEach(function(program) {
+      if (program.info) program.info = new AttrList(program.info);
+    });
+  }, this);
+
   this.groups = clone(obj.groups) || {};
+  Object.keys(this.groups).forEach(function(id) {
+    var list = this.groups[id];
+    for (var idx = 0; idx < list.length; idx++)
+      list[idx] = new AttrList(list[idx]);
+  }, this);
+
   this.iframes = clone(obj.iframes) || {}; // V4
+  Object.keys(this.iframes).forEach(function(id) {
+    var list = this.iframes[id];
+    for (var idx = 0; idx < list.length; idx++)
+      list[idx] = new AttrList(list[idx]);
+  }, this);
 
   // custom vendor extensions
   if (obj.vendor)
