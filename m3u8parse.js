@@ -314,7 +314,7 @@ function M3U8Segment(uri, meta, version) {
 
   // optional
   if (meta.program_time)
-    this.program_time = meta.program_time;
+    this.program_time = new Date(meta.program_time);
   if (meta.key)
     this.key = new AttrList(meta.key);
 
