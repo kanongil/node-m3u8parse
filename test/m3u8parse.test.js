@@ -79,6 +79,7 @@ describe('M3U8Parse', function() {
 describe('M3U8Playlist', function() {
   var testIndex = null;
   var testIndexAlt = null;
+  var testIndexSingle = null;
   var variantIndex = null;
 
   before(function(done) {
@@ -95,6 +96,15 @@ describe('M3U8Playlist', function() {
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       testIndexAlt = index;
+      done();
+    });
+  })
+
+  before(function(done) {
+    var stream = fs.createReadStream(path.join(fixtureDir, 'enc-single.m3u8'));
+    m3u8parse(stream, function(err, index) {
+      should.not.exist(err);
+      testIndexSingle = index;
       done();
     });
   })
@@ -257,9 +267,26 @@ describe('M3U8Playlist', function() {
       testIndex.keyForSeqNo(7795).should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e73'}));
       testIndex.keyForSeqNo(7796).should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e74'}));
       testIndex.keyForSeqNo(7797).should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x1e75'}));
-   })
+    })
     it('should return null after method=NONE', function() {
       should.not.exist(testIndexAlt.keyForSeqNo(7795));
+    })
+  })
+
+  describe('#byterangeForSeqNo()', function() {
+    it('should return null for for out of bounds sequence numbers', function() {
+      should.not.exist(testIndexSingle.keyForSeqNo(0));
+      should.not.exist(testIndexSingle.keyForSeqNo("100"));
+      should.not.exist(testIndexSingle.keyForSeqNo("10000"));
+    })
+    it('should return null for for indexes with no byterange information', function() {
+      should.not.exist(testIndex.byterangeForSeqNo(7794));
+    })
+    it('should return correct values', function() {
+      testIndexSingle.byterangeForSeqNo(300).should.eql({length:300000, offset:5000000});
+      testIndexSingle.byterangeForSeqNo(301).should.eql({length:300000, offset:0});
+      testIndexSingle.byterangeForSeqNo(302).should.eql({length:300000, offset:300000});
+      testIndexSingle.byterangeForSeqNo(303).should.eql({length:300000, offset:600000});
     })
   })
 
@@ -286,6 +313,7 @@ describe('M3U8Playlist', function() {
       testIndex.getSegment(7795, true).key.should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e73'}));
       testIndex.getSegment(7796, true).key.should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e74'}));
       testIndex.getSegment(7797, true).key.should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x1e75'}));
+      testIndexSingle.getSegment(302, true).byterange.should.eql({length:300000, offset:300000});
       should.not.exist(testIndex.getSegment(7794, true).map);
       should.not.exist(testIndex.getSegment(7797, true).map);
     })
@@ -294,23 +322,43 @@ describe('M3U8Playlist', function() {
   describe('#toString()', function() {
 
     it('should output valid index files', function(done) {
-      var r = new Readable();
-      r._read = function() {};
-      r.push(testIndex.toString());
-      r.push(null);
+      var r1 = new Readable();
+      r1.push(testIndex.toString());
+      r1.push(null);
 
       // test that output string parses correctly
-      m3u8parse(r, function(err, index) {
+      m3u8parse(r1, function(err, index) {
         should.not.exist(err);
         should.exist(index);
         testIndex.should.eql(index);
-        done();
+
+        var r2 = new Readable();
+        r2.push(testIndexAlt.toString());
+        r2.push(null);
+
+        // test that output string parses correctly
+        m3u8parse(r2, function(err, index) {
+          should.not.exist(err);
+          should.exist(index);
+          testIndexAlt.should.eql(index);
+
+          var r3 = new Readable();
+          r3.push(testIndexSingle.toString());
+          r3.push(null);
+
+          // test that output string parses correctly
+          m3u8parse(r3, function(err, index) {
+            should.not.exist(err);
+            should.exist(index);
+            testIndexSingle.should.eql(index);
+            done();
+          });
+        });
       });
     })
 
     it('should output valid variant files', function(done) {
       var r = new Readable();
-      r._read = function() {};
       r.push(variantIndex.toString());
       r.push(null);
 

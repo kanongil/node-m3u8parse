@@ -193,6 +193,42 @@ M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
   return key;
 };
 
+M3U8Playlist.prototype.byterangeForSeqNo = function(seqNo) {
+  var seqIndex = seqNo - this.first_seq_no;
+  var seqSegment = this.segments[seqIndex] || null;
+  if (!seqSegment || !seqSegment.byterange) return null;
+
+  var length = parseInt(seqSegment.byterange.length, 10);
+  if (isNaN(length)) return null;
+
+  var offset = parseInt(seqSegment.byterange.offset, 10);
+  if (isNaN(offset)) {
+    // compute actual value from history
+    offset = 0;
+
+    for (var idx = seqIndex-1; idx >= 0; idx--) {
+      var segment = this.segments[idx];
+      if (segment.uri !== seqSegment.uri) continue;
+      if (!segment.byterange) break; // consistency error
+
+      var segmentLength = parseInt(segment.byterange.length, 10);
+      var segmentOffset = parseInt(segment.byterange.offset, 10);
+      if (isNaN(segmentLength)) break; // consistency error
+
+      offset += segmentLength;
+      if (!isNaN(segmentOffset)) {
+        offset += segmentOffset;
+        break;
+      }
+    }
+  }
+
+  return {
+    length: length,
+    offset: offset
+  };
+};
+
 M3U8Playlist.prototype.mapForSeqNo = function(seqNo) {
   return lastSegmentProperty(this, 'map', seqNo, function(segment) {
     return segment.discontinuity; // abort on discontinuity
@@ -205,9 +241,11 @@ M3U8Playlist.prototype.getSegment = function(seqNo, independent) {
   var segment = this.segments[index] || null;
   if (independent && segment) {
     segment = new M3U8Segment(segment);
-    // EXT-X-KEY, EXT-X-MAP, EXT-X-PROGRAM-DATE-TIME needs to be individualized
+    // EXT-X-KEY, EXT-X-MAP, EXT-X-PROGRAM-DATE-TIME, EXT-X-BYTERANGE needs to be individualized
     segment.program_time = this.dateForSeqNo(seqNo);
     segment.key = this.keyForSeqNo(seqNo);
+    if (this.version >= 4)
+      segment.byterange = this.byterangeForSeqNo(seqNo);
     if (this.version >= 5)
       segment.map = this.mapForSeqNo(seqNo);
     // note: 'uri' is not resolved to an absolute url, since it principally opaque
@@ -318,6 +356,8 @@ function M3U8Segment(uri, meta, version) {
   if (meta.key)
     this.key = new AttrList(meta.key);
 
+  if (version >= 4 && meta.byterange)
+    this.byterange = clone(meta.byterange);
   if (version >= 5 && meta.map)
     this.map = new AttrList(meta.map);
 
@@ -335,9 +375,9 @@ M3U8Segment.prototype.toString = function() {
   }
   if (this.key) res += '#EXT-X-KEY:' + AttrList(this.key) + '\n';
   if (this.map) res += '#EXT-X-MAP:' + AttrList(this.map) + '\n';
-  if (this.byterange && (this.byterange.length + this.byterange.offset)) {
+  if (this.byterange && (this.byterange.length || this.byterange.length === 0)) {
     var range = '' + this.byterange.length;
-    if (this.byterange.offset)
+    if (this.byterange.offset || this.byterange.offset === 0)
       range += '@' + this.byterange.offset;
     res += '#EXT-X-BYTERANGE:' + range + '\n';
   }
@@ -457,9 +497,9 @@ function M3U8Parse(stream, options, cb) {
 
       var attrname;
       if (m3u8.version >= 4)
-        for (attrname in extParserV4) { extParser[attrname] = extParser[attrname]; }
+        for (attrname in extParserV4) { extParser[attrname] = extParserV4[attrname]; }
       if (m3u8.version >= 5)
-        for (attrname in extParserV5) { extParser[attrname] = extParser[attrname]; }
+        for (attrname in extParserV5) { extParser[attrname] = extParserV5[attrname]; }
     },
     '#EXT-X-TARGETDURATION': function(arg) {
       m3u8.target_duration = parseInt(arg, 10);
