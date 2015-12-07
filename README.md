@@ -10,7 +10,6 @@ This module is tested and is used in production systems.
 
 ## TODO
 
- * Detailed `AttrList` tests.
  * Validation option.
  * `String`/`Buffer` input.
 
