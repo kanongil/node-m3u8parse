@@ -13,7 +13,7 @@ This module is tested and is used in production systems.
  * Validation option.
  * `String`/`Buffer` input.
 
-#License
+# License
 (BSD 2-Clause License)
 
 Copyright (c) 2013-2014, Gil Pedersen &lt;gpdev@gpost.dk&gt;  
