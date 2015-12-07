@@ -1,7 +1,7 @@
 var fs = require('fs'),
     path = require('path'),
     Readable = require('stream').Readable,
-    should = require('should');
+    should = require('chai').should();
 
 var m3u8parse = require('../m3u8parse');
 

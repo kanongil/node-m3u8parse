@@ -1,7 +1,6 @@
 "use strict";
 
-var clone = require('clone'),
-    BigNumber = require('bignumber.js');
+var UINT64 = require('cuint/lib/uint64');
 
 var debug = function () {};
 try {
@@ -9,6 +8,8 @@ try {
 } catch (err) {}
 
 var exports = module.exports = AttrList;
+
+var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || 9007199254740991;
 
 // AttrList's are currently handled without any implicit knowledge of key/type mapping
 function ParseAttrList(input) {
@@ -55,13 +56,17 @@ Object.defineProperties(AttrList.prototype, {
     var name = attrName.toLowerCase();
     if (arguments.length > 1) {
       if (Buffer.isBuffer(value)) {
-        this[name] = new BigNumber(value.toString('hex'), 16).toString(10);
+        if (value.length) {
+          this[name] = new UINT64(value.toString('hex'), 16).toString(10);
+        } else {
+          this[name] = '0';
+        }
       } else {
         this[name] = '' + Math.floor(value);
       }
     }
     try {
-      var stringValue = new BigNumber(this[name] || '0').toString(16);
+      var stringValue = new UINT64(this[name] || '0').toString(16);
       stringValue = ((stringValue.length & 1) ? '0' : '') + stringValue;
       return new Buffer(stringValue, 'hex');
     } catch (e) {
@@ -72,10 +77,16 @@ Object.defineProperties(AttrList.prototype, {
   hexadecimalInteger: { value: function(attrName, value) {
     var name = attrName.toLowerCase();
     if (arguments.length > 1) {
-      if (Buffer.isBuffer(value))
-        this[name] = '0x' + value.toString('hex');
-      else
+      if (Buffer.isBuffer(value)) {
+        if (value.length) {
+          var hexValue = value.toString('hex');
+          this[name] = '0x' + (hexValue[0] === '0' ? hexValue.slice(1) : hexValue);
+        } else {
+          this[name] = '0x0';
+        }
+      } else {
         this[name] = '0x' + Math.floor(value).toString(16);
+      }
     }
     var stringValue = (this[name] || '0x').slice(2);
     stringValue = ((stringValue.length & 1) ? '0' : '') + stringValue;
@@ -88,8 +99,8 @@ Object.defineProperties(AttrList.prototype, {
       this.decimalInteger(name, value);
 
     var intValue = parseInt(this[name], 10);
-    if (intValue >= Number.MAX_VALUE)
-      throw new RangeError('Value is to large to represent without loss of precision');
+    if (intValue > MAX_SAFE_INTEGER)
+      return Number.POSITIVE_INFINITY;
     return intValue;
   }},
 
@@ -99,8 +110,8 @@ Object.defineProperties(AttrList.prototype, {
       this.hexadecimalInteger(name, value);
 
     var intValue = parseInt(this[name], 16);
-    if (intValue >= Number.MAX_VALUE)
-      throw new RangeError('Value is to large to represent without loss of precision');
+    if (intValue > MAX_SAFE_INTEGER)
+      return Number.POSITIVE_INFINITY;
     return intValue;
   }},
 
@@ -135,11 +146,11 @@ Object.defineProperties(AttrList.prototype, {
       value = value || {};
       this[name] = '' + Math.floor(value.width) + 'x' + Math.floor(value.height);
     }
-    var res = /(\d+)x(\d+)/.exec(this[name]);
-    return {
-      width: res ? res[1] : null,
-      height: res ? res[2] : null,
-    };
+    var res = /^(\d+)x(\d+)$/.exec(this[name]);
+    if (res === null) {
+      return undefined;
+    }
+    return { width: parseInt(res[1], 10), height: parseInt(res[2], 10) };
   }},
 });
 
