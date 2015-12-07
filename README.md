@@ -16,7 +16,7 @@ This module is tested and is used in production systems.
 # License
 (BSD 2-Clause License)
 
-Copyright (c) 2013-2014, Gil Pedersen &lt;gpdev@gpost.dk&gt;  
+Copyright (c) 2013-2015, Gil Pedersen &lt;gpdev@gpost.dk&gt;  
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met: 
