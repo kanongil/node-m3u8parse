@@ -1,0 +1,17 @@
+#EXTM3U
+#EXT-X-VERSION:4
+#EXT-X-MEDIA-SEQUENCE:300
+#EXT-X-TARGETDURATION:15
+#EXT-X-BYTERANGE:300000@5000000
+#EXTINF:2.833,
+http://media.example.com/streamPart1.ts
+#EXT-X-DISCONTINUITY
+#EXT-X-BYTERANGE:300000@0
+#EXTINF:15.0,
+http://media.example.com/streamPart2.ts
+#EXT-X-BYTERANGE:300000
+#EXTINF:13.333,
+http://media.example.com/streamPart2.ts
+#EXT-X-BYTERANGE:300000
+#EXTINF:15.0,
+http://media.example.com/streamPart2.ts
