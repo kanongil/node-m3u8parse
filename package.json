@@ -23,7 +23,8 @@
   "devDependencies": {
     "chai": "^3.4.1",
     "istanbul": "^0.4.1",
-    "mocha": "^2.2.1"
+    "mocha": "^2.2.1",
+    "readable-stream": "^2.0.4"
   },
   "directories": {
     "test": "test"
