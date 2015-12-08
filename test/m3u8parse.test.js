@@ -1,7 +1,8 @@
 var fs = require('fs'),
     path = require('path'),
     Readable = require('readable-stream').Readable,
-    should = require('chai').should();
+    should = require('chai').should(),
+    expect = require('chai').expect;
 
 var m3u8parse = require('../m3u8parse');
 
@@ -348,6 +349,16 @@ describe('M3U8Playlist', function() {
       should.not.exist(testIndex.getSegment(7794, true).map);
       should.not.exist(testIndex.getSegment(7797, true).map);
     })
+  })
+
+  describe('parsed object', function() {
+
+    it('includes session-data', function() {
+      expect(variantIndex.data['com.example.lyrics'][0].quotedString('uri')).to.equal('lyrics.json');
+      expect(variantIndex.data['com.example.title'][0].quotedString('value')).to.equal('This is an example');
+      expect(variantIndex.data['com.example.title'][1].quotedString('value')).to.equal('Este es un ejemplo');
+    })
+
   })
 
   describe('#toString()', function() {
