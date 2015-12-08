@@ -123,6 +123,14 @@ Object.defineProperties(AttrList.prototype, {
     return parseFloat(this[name]);
   }},
 
+  signedDecimalFloatingPoint: { value: function(attrName, value) {
+    var name = attrName.toLowerCase();
+    if (arguments.length > 1) {
+      this[name] = '' + value;
+    }
+    return parseFloat(this[name]);
+  }},
+
   quotedString: { value: function(attrName, value) {
     var name = attrName.toLowerCase();
     if (arguments.length > 1) {

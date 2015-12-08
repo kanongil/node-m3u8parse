@@ -43,9 +43,18 @@ describe('AttrList', function() {
     })
 
     it('parses valid decimalFloatingPoint attribute', function() {
+      expect(new AttrList('FLOAT=42.0').decimalFloatingPoint('FLOAT')).to.equal(42.0);
       expect(new AttrList('FLOAT=0.42').decimalFloatingPoint('FLOAT')).to.equal(0.42);
-      expect(new AttrList('FLOAT=-0.42').decimalFloatingPoint('FLOAT')).to.equal(-0.42);
       expect(new AttrList('FLOAT=0').decimalFloatingPoint('FLOAT')).to.equal(0);
+    })
+
+    it('parses valid signedDecimalFloatingPoint attribute', function() {
+      expect(new AttrList('FLOAT=42.0').signedDecimalFloatingPoint('FLOAT')).to.equal(42.0);
+      expect(new AttrList('FLOAT=-42.0').signedDecimalFloatingPoint('FLOAT')).to.equal(-42.0);
+      expect(new AttrList('FLOAT=0.42').signedDecimalFloatingPoint('FLOAT')).to.equal(0.42);
+      expect(new AttrList('FLOAT=-0.42').signedDecimalFloatingPoint('FLOAT')).to.equal(-0.42);
+      expect(new AttrList('FLOAT=0').signedDecimalFloatingPoint('FLOAT')).to.equal(0);
+      expect(new AttrList('FLOAT=-0').signedDecimalFloatingPoint('FLOAT')).to.equal(-0);
     })
 
     it('parses valid quotedString attribute', function() {
@@ -160,9 +169,17 @@ describe('AttrList', function() {
     })
 
     it('encodes valid decimalFloatingPoint attribute', function() {
+      expect(encode('decimalFloatingPoint', 42.5)).to.equal('42.5');
       expect(encode('decimalFloatingPoint', 0.42)).to.equal('0.42');
-      expect(encode('decimalFloatingPoint', -0.42)).to.equal('-0.42');
       expect(encode('decimalFloatingPoint', 0)).to.equal('0');
+    })
+
+    it('encodes valid signedDecimalFloatingPoint attribute', function() {
+      expect(encode('signedDecimalFloatingPoint', 42.5)).to.equal('42.5');
+      expect(encode('signedDecimalFloatingPoint', 0.42)).to.equal('0.42');
+      expect(encode('signedDecimalFloatingPoint', -0.42)).to.equal('-0.42');
+      expect(encode('signedDecimalFloatingPoint', 0)).to.equal('0');
+      expect(encode('signedDecimalFloatingPoint', -0)).to.equal('0');
     })
 
     it('encodes valid quotedString attribute', function() {
