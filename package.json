@@ -4,7 +4,8 @@
   "description": "Structural parsing of Apple HTTP Live Streaming .m3u8 format",
   "main": "m3u8parse.js",
   "scripts": {
-    "test": "mocha -R list"
+    "test": "mocha -R list",
+    "coverage": "istanbul cover _mocha -- --ui bdd -R spec -t 1000"
   },
   "keywords": [
     "hls",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "chai": "^3.4.1",
+    "istanbul": "^0.4.1",
     "mocha": "^2.2.1"
   },
   "directories": {
