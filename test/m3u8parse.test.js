@@ -9,8 +9,18 @@ var fixtureDir = path.join(__dirname, 'fixtures');
 
 describe('M3U8Parse', function() {
 
-  it('should parse a valid file', function(done) {
-  	var stream = fs.createReadStream(path.join(fixtureDir, 'enc.m3u8'));
+  it('should parse a valid live file', function(done) {
+    var stream = fs.createReadStream(path.join(fixtureDir, 'enc.m3u8'));
+    m3u8parse(stream, function(err, index) {
+      should.not.exist(err);
+      should.exist(index);
+      index.variant.should.be.false;
+      done();
+    });
+  })
+
+  it('should parse a valid VOD file', function(done) {
+    var stream = fs.createReadStream(path.join(fixtureDir, 'vod.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
@@ -20,7 +30,7 @@ describe('M3U8Parse', function() {
   })
 
   it('should parse a basic variant file', function(done) {
-  	var stream = fs.createReadStream(path.join(fixtureDir, 'variant.m3u8'));
+    var stream = fs.createReadStream(path.join(fixtureDir, 'variant.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
@@ -30,7 +40,7 @@ describe('M3U8Parse', function() {
   })
 
   it('should parse an advanced variant file', function(done) {
-  	var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v4.m3u8'));
+    var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v4.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
@@ -40,7 +50,7 @@ describe('M3U8Parse', function() {
   })
 
   it('should parse a v6 variant file', function(done) {
-  	var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v6.m3u8'));
+    var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v6.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
@@ -50,7 +60,7 @@ describe('M3U8Parse', function() {
   })
 
   it('should parse an iframe variant file', function(done) {
-  	var stream = fs.createReadStream(path.join(fixtureDir, 'variant_iframe.m3u8'));
+    var stream = fs.createReadStream(path.join(fixtureDir, 'variant_iframe.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
@@ -59,7 +69,7 @@ describe('M3U8Parse', function() {
     });
   })
 
-  it('should parse vendor extensions', function(done) {
+  it('should handle vendor extensions', function(done) {
     var stream = fs.createReadStream(path.join(fixtureDir, 'enc.m3u8'));
     m3u8parse(stream, { extensions: {'#EXT-X-UNKNOWN-EXTENSION':false, '#EXT-Y-META-EXTENSION':true} }, function(err, index) {
       should.not.exist(err);
@@ -67,9 +77,24 @@ describe('M3U8Parse', function() {
 
       should.exist(index.vendor);
       index.vendor.should.eql({ '#EXT-X-UNKNOWN-EXTENSION': null });
-
       should.exist(index.segments[2].vendor);
       index.segments[2].vendor.should.eql({ '#EXT-Y-META-EXTENSION': 'w00t' });
+
+      var index2 = new m3u8parse.M3U8Playlist(index);
+      should.exist(index2.vendor);
+      index2.vendor.should.eql({ '#EXT-X-UNKNOWN-EXTENSION': null });
+      should.exist(index2.segments[2].vendor);
+      index2.segments[2].vendor.should.eql({ '#EXT-Y-META-EXTENSION': 'w00t' });
+
+      done();
+    });
+  })
+
+  it('should fail on invalid files', function(done) {
+    var stream = fs.createReadStream(path.join(fixtureDir, 'empty.m3u8'));
+    m3u8parse(stream, function(err, index) {
+      should.exist(err);
+      err.should.be.instanceof(m3u8parse.ParserError);
       done();
     });
   })
@@ -83,7 +108,7 @@ describe('M3U8Playlist', function() {
   var variantIndex = null;
 
   before(function(done) {
-  	var stream = fs.createReadStream(path.join(fixtureDir, 'enc.m3u8'));
+    var stream = fs.createReadStream(path.join(fixtureDir, 'enc.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       testIndex = index;
@@ -146,7 +171,13 @@ describe('M3U8Playlist', function() {
   describe('#startSeqNo()', function() {
     it('should return the sequence number to start streaming from', function() {
       testIndex.startSeqNo().should.equal(7794);
+      testIndexSingle.startSeqNo().should.equal(300);
       variantIndex.startSeqNo().should.equal(-1);
+    })
+    it('should handle the full option', function() {
+      testIndex.startSeqNo(true).should.equal(7794);
+      testIndexSingle.startSeqNo(true).should.equal(300);
+      variantIndex.startSeqNo(true).should.equal(-1);
     })
   })
 
@@ -379,6 +410,20 @@ describe('M3U8Playlist', function() {
         '#EXT-MY-TEST': 'yeah!'
       };
       index.toString().should.equal('#EXTM3U\n#EXT-MY-TEST:yeah!\n')
+    })
+
+    it('should handle vendor segment-extensions', function() {
+      var index = m3u8parse.M3U8Playlist();
+
+      index.target_duration = 10;
+      index.segments = [new m3u8parse.M3U8Segment({
+        uri: 'url',
+        duration: 10,
+        title: '',
+        vendor: { '#EXT-MY-TEST': 'yeah!' }
+      })];
+      index.ended = true;
+      index.toString().should.equal('#EXTM3U\n#EXT-X-TARGETDURATION:10\n#EXT-MY-TEST:yeah!\n#EXTINF:10,\nurl\n#EXT-X-ENDLIST\n')
     })
 
   })

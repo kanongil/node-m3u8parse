@@ -29,7 +29,7 @@ function M3U8Playlist(obj) {
 
   // initialize to default values
   this.version = obj.version || 1; // V1
-  this.allow_cache = obj.allow_cache || true;
+  this.allow_cache = !(obj.allow_cache === false);
   this.i_frames_only = obj.i_frames_only || false; // V4
   this.target_duration = obj.target_duration || undefined;
   this.first_seq_no = obj.first_seq_no || 0;
@@ -90,6 +90,7 @@ M3U8Playlist.prototype.isLive = function() {
 };
 
 M3U8Playlist.prototype.startSeqNo = function(full) {
+  if (this.segments.length === 0) return -1;
   if (!this.isLive() || full) return this.first_seq_no;
 
   var duration = this.target_duration * 3;

@@ -1,16 +1,15 @@
 #EXTM3U
-# comment
 #EXT-X-VERSION:3
 #EXT-X-MEDIA-SEQUENCE:7794
-#EXT-X-DISCONTINUITY-SEQUENCE:42
-#EXT-X-ALLOW-CACHE:NO
 #EXT-X-TARGETDURATION:15
 #EXT-X-PROGRAM-DATE-TIME:2013-10-29T11:34:13.000Z
 #EXT-X-START:TIME-OFFSET=0
+#EXT-X-PLAYLIST-TYPE:VOD
 #EXT-X-INDEPENDENT-SEGMENTS
-#EXT-X-UNKNOWN-EXTENSION
+#EXT-X-ALLOW-CACHE:YES
 #EXT-X-KEY:METHOD=AES-128,URI="https://priv.example.com/key.php?r=52"
 #EXTINF:2.833,
+# comment
 http://media.example.com/fileSequence52-A.ts
 #EXTINF:15.0,
 http://media.example.com/fileSequence52-B.ts
@@ -21,3 +20,4 @@ http://media.example.com/fileSequence52-C.ts
 #EXT-X-KEY:METHOD=AES-128,URI="https://priv.example.com/key.php?r=53"
 #EXTINF:15.0,
 http://media.example.com/fileSequence53-A.ts
+#EXT-X-ENDLIST
