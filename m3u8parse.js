@@ -275,6 +275,14 @@ M3U8Playlist.prototype.toString = function() {
     });
   }
 
+  function streamInfAttrs(obj, version) {
+    var attrs = AttrList(obj);
+    if (version >= 6) {
+      delete attrs['program-id'];
+    }
+    return attrs;
+  }
+
   if (this.variant) {
     var dataId, groupId, programId;
 
@@ -286,21 +294,21 @@ M3U8Playlist.prototype.toString = function() {
 
     for (groupId in this.groups) {
       this.groups[groupId].forEach(function (group) {
-        m3u8 += '#EXT-X-MEDIA:' + AttrList(group) + '\n';
+        m3u8 += '#EXT-X-MEDIA:' + new AttrList(group) + '\n';
       });
     }
 
     var iframes = util.isArray(this.iframes) ? { null: this.iframes } : this.iframes;
     for (programId in iframes) {
       iframes[programId].forEach(function (iframe) {
-        m3u8 += '#EXT-X-I-FRAME-STREAM-INF:' + AttrList(iframe) + '\n';
+        m3u8 += '#EXT-X-I-FRAME-STREAM-INF:' + streamInfAttrs(iframe) + '\n';
       });
     }
 
     var programs = util.isArray(this.programs) ? { null: this.programs } : this.programs;
     for (programId in programs) {
       programs[programId].forEach(function (program) {
-        m3u8 += '#EXT-X-STREAM-INF:' + AttrList(program.info) + '\n';
+        m3u8 += '#EXT-X-STREAM-INF:' + streamInfAttrs(program.info) + '\n';
         m3u8 += program.uri + '\n';
       });
     }
@@ -310,7 +318,7 @@ M3U8Playlist.prototype.toString = function() {
     if (this.type)
       m3u8 += '#EXT-X-PLAYLIST-TYPE:' + this.type + '\n';
 
-    if (!this.allow_cache)
+    if (this.version < 7 && !this.allow_cache)
       m3u8 += '#EXT-X-ALLOW-CACHE:NO\n';
 
     var firstSeqNo = parseInt(this.first_seq_no, 10) || 0;
@@ -323,15 +331,15 @@ M3U8Playlist.prototype.toString = function() {
         m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + discontinuitySequence + '\n'; // soft V6
     }
 
-    if (this.start && Object.keys(this.start).length)
-      m3u8 += '#EXT-X-START:' + AttrList(this.start) + '\n'; // soft V6
-
-    if (this.independent_segments)
-      m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n'; // soft V6
-
     if (this.version >= 4 && this.i_frames_only)
       m3u8 += '#EXT-X-I-FRAMES-ONLY:YES\n';
   }
+
+  if (this.start && Object.keys(this.start).length)
+    m3u8 += '#EXT-X-START:' + new AttrList(this.start) + '\n'; // soft V6
+
+  if (this.independent_segments)
+    m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n'; // soft V6
 
   // add vendor extensions
   for (var ext in (this.vendor || {})) {
