@@ -5,7 +5,8 @@
   "main": "m3u8parse.js",
   "scripts": {
     "test": "mocha -R list",
-    "coverage": "istanbul cover _mocha -- --ui bdd -R spec -t 1000"
+    "coverage": "istanbul cover _mocha -- --ui bdd -R spec -t 1000",
+    "coveralls": "istanbul cover _mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | coveralls"
   },
   "keywords": [
     "hls",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "chai": "^3.4.1",
+    "coveralls": "^2.11.4",
     "istanbul": "^0.4.1",
     "mocha": "^2.2.1",
     "readable-stream": "^2.0.4"
