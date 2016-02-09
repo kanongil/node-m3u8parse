@@ -1,7 +1,7 @@
 "use strict";
 
 var util = require('util'),
-    carrier = require('carrier'),
+    split = require('split'),
     clone = require('clone');
 
 var AttrList = require('./attrlist');
@@ -427,15 +427,15 @@ function M3U8Parse(stream, options, cb) {
 
   var extensions = clone(options.extensions || {});
 
-  var cr = carrier.carry(stream);
-  cr.on('line', ParseLine);
+  var cr = stream.pipe(split());
+  cr.on('data', ParseLine);
   cr.on('end', Complete);
 
   stream.on('error', ReportError);
 
   function cleanup() {
     stream.removeListener('error', ReportError);
-    cr.removeListener('line', ParseLine);
+    cr.removeListener('data', ParseLine);
     cr.removeListener('end', Complete);
   }
 
