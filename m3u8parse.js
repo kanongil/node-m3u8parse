@@ -1,7 +1,6 @@
 "use strict";
 
-var path = require('path'),
-    util = require('util'),
+var util = require('util'),
     carrier = require('carrier'),
     clone = require('clone');
 
