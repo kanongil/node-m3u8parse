@@ -15,7 +15,7 @@
     "audio"
   ],
   "author": "Gil Pedersen <gpdev@gpost.dk>",
-  "license": "BSD",
+  "license": "BSD-2-Clause",
   "dependencies": {
     "carrier": "^0.1.14",
     "clone": "^1.0.1",
