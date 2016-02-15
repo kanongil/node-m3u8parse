@@ -331,7 +331,7 @@ M3U8Playlist.prototype.toString = function() {
     }
 
     if (this.version >= 4 && this.i_frames_only)
-      m3u8 += '#EXT-X-I-FRAMES-ONLY:YES\n';
+      m3u8 += '#EXT-X-I-FRAMES-ONLY\n';
   }
 
   if (this.start && Object.keys(this.start).length)
