@@ -24,7 +24,7 @@ function M3U8Playlist(obj) {
 
   obj = obj || {};
 
-  this.variant = obj.variant || false;
+  this.master = obj.master || false;
 
   // initialize to default values
   this.version = obj.version || 1; // V1
@@ -45,7 +45,7 @@ function M3U8Playlist(obj) {
     });
   }
 
-  // for variant streams
+  // for master streams
   this.programs = clone(obj.programs) || [];
   this.programs.forEach(function(program) {
     if (program.info) program.info = new AttrList(program.info);
@@ -276,7 +276,7 @@ M3U8Playlist.prototype.toString = function() {
     return attrs;
   }
 
-  if (!this.variant) {
+  if (!this.master) {
     m3u8 += '#EXT-X-TARGETDURATION:' + this.target_duration + '\n';
 
     if (this.type)
@@ -305,7 +305,7 @@ M3U8Playlist.prototype.toString = function() {
   if (this.independent_segments)
     m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n'; // soft V6
 
-  if (this.variant) {
+  if (this.master) {
     for (var dataId in this.data) {  // soft V7
       this.data[dataId].forEach(function (data) {
         m3u8 += '#EXT-X-SESSION-DATA:' + new AttrList(data) + '\n';
@@ -341,7 +341,7 @@ M3U8Playlist.prototype.toString = function() {
     m3u8 += segment.toString();
   });
 
-  if (this.ended && !this.variant)
+  if (this.ended && !this.master)
     m3u8 += '#EXT-X-ENDLIST\n';
 
   return m3u8;
@@ -479,7 +479,7 @@ function M3U8Parse(stream, options, cb) {
 
       if (!ParseExt(cmd, arg))
         return debug('ignoring unknown #EXT:' + cmd, line_no);
-    } else if (m3u8.variant) {
+    } else if (m3u8.master) {
       meta.uri = line;
       m3u8.programs.push(meta);
       meta = {};
@@ -547,12 +547,12 @@ function M3U8Parse(stream, options, cb) {
       meta.discontinuity = true;
     },
 
-    // variant
+    // master
     '#EXT-X-STREAM-INF': function(arg) {
-      m3u8.variant = true;
+      m3u8.master = true;
       meta.info = new AttrList(arg);
     },
-    // variant v4 since variant streams are not required to specify version
+    // master v4 since master streams are not required to specify version
     '#EXT-X-MEDIA': function(arg) {
       var attrs = new AttrList(arg),
           id = attrs.quotedString('group-id') || '#';
@@ -565,7 +565,7 @@ function M3U8Parse(stream, options, cb) {
       m3u8.groups[id].push(attrs);
     },
     '#EXT-X-I-FRAME-STREAM-INF': function(arg) {
-      m3u8.variant = true;
+      m3u8.master = true;
       m3u8.iframes.push(new AttrList(arg));
     },
     '#EXT-X-SESSION-DATA': function(arg) {

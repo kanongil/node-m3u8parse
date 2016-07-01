@@ -15,7 +15,7 @@ describe('M3U8Parse', function() {
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
-      index.variant.should.be.false;
+      index.master.should.be.false;
       done();
     });
   })
@@ -25,47 +25,47 @@ describe('M3U8Parse', function() {
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
-      index.variant.should.be.false;
+      index.master.should.be.false;
       done();
     });
   })
 
-  it('should parse a basic variant file', function(done) {
+  it('should parse a basic master file', function(done) {
     var stream = fs.createReadStream(path.join(fixtureDir, 'variant.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
-      index.variant.should.be.true;
+      index.master.should.be.true;
       done();
     });
   })
 
-  it('should parse an advanced variant file', function(done) {
+  it('should parse an advanced master file', function(done) {
     var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v4.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
-      index.variant.should.be.true;
+      index.master.should.be.true;
       done();
     });
   })
 
-  it('should parse a v6 variant file', function(done) {
+  it('should parse a v6 master file', function(done) {
     var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v6.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
-      index.variant.should.be.true;
+      index.master.should.be.true;
       done();
     });
   })
 
-  it('should parse an iframe variant file', function(done) {
+  it('should parse an iframe master file', function(done) {
     var stream = fs.createReadStream(path.join(fixtureDir, 'variant_iframe.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
       should.exist(index);
-      index.variant.should.be.true;
+      index.master.should.be.true;
       done();
     });
   })
@@ -106,7 +106,7 @@ describe('M3U8Playlist', function() {
   var testIndex = null;
   var testIndexAlt = null;
   var testIndexSingle = null;
-  var variantIndex = null;
+  var masterIndex = null;
 
   before(function(done) {
     var stream = fs.createReadStream(path.join(fixtureDir, 'enc.m3u8'));
@@ -139,7 +139,7 @@ describe('M3U8Playlist', function() {
   	var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v4.m3u8'));
     m3u8parse(stream, function(err, index) {
       should.not.exist(err);
-      variantIndex = index;
+      masterIndex = index;
       done();
     });
   })
@@ -151,14 +151,14 @@ describe('M3U8Playlist', function() {
 
     it('should clone passed object', function() {
       testIndex.should.eql(new m3u8parse.M3U8Playlist(testIndex));
-      variantIndex.should.eql(new m3u8parse.M3U8Playlist(variantIndex));
+      masterIndex.should.eql(new m3u8parse.M3U8Playlist(masterIndex));
     })
   })
 
   describe('#totalDuration()', function() {
     it('should calculate total of all segments durations', function() {
       testIndex.totalDuration().should.equal(46.166);
-      variantIndex.totalDuration().should.equal(0);
+      masterIndex.totalDuration().should.equal(0);
     })
   })
 
@@ -173,19 +173,19 @@ describe('M3U8Playlist', function() {
     it('should return the sequence number to start streaming from', function() {
       testIndex.startSeqNo().should.equal(7794);
       testIndexSingle.startSeqNo().should.equal(300);
-      variantIndex.startSeqNo().should.equal(-1);
+      masterIndex.startSeqNo().should.equal(-1);
     })
     it('should handle the full option', function() {
       testIndex.startSeqNo(true).should.equal(7794);
       testIndexSingle.startSeqNo(true).should.equal(300);
-      variantIndex.startSeqNo(true).should.equal(-1);
+      masterIndex.startSeqNo(true).should.equal(-1);
     })
   })
 
   describe('#lastSeqNo()', function() {
     it('should return the sequence number of the final segment', function() {
       testIndex.lastSeqNo().should.equal(7797);
-      variantIndex.lastSeqNo().should.equal(-1);
+      masterIndex.lastSeqNo().should.equal(-1);
     })
   })
 
@@ -215,7 +215,7 @@ describe('M3U8Playlist', function() {
       should.not.exist(testIndex.dateForSeqNo("10000"));
     })
     it('should return null for indexes with no date information', function() {
-      should.not.exist(variantIndex.dateForSeqNo(0));
+      should.not.exist(masterIndex.dateForSeqNo(0));
 
       var index = new m3u8parse.M3U8Playlist(testIndex);
       delete index.segments[0].program_time;
@@ -288,7 +288,7 @@ describe('M3U8Playlist', function() {
       should.not.exist(testIndexAlt.keyForSeqNo("10000"));
     })
     it('should return null for for indexes with no key information', function() {
-      should.not.exist(variantIndex.keyForSeqNo(0));
+      should.not.exist(masterIndex.keyForSeqNo(0));
 
       var index = new m3u8parse.M3U8Playlist(testIndex);
       delete index.segments[0].key;
@@ -333,7 +333,7 @@ describe('M3U8Playlist', function() {
       should.not.exist(testIndex.getSegment(7793));
       should.not.exist(testIndex.getSegment(7798));
 
-      should.not.exist(variantIndex.getSegment(0));
+      should.not.exist(masterIndex.getSegment(0));
     })
     it('should return computed independent segments attributes correctly', function() {
       testIndex.getSegment(7794, true).should.be.an.instanceof(m3u8parse.M3U8Segment);
@@ -354,9 +354,9 @@ describe('M3U8Playlist', function() {
   describe('parsed object', function() {
 
     it('includes session-data', function() {
-      expect(variantIndex.data['com.example.lyrics'][0].quotedString('uri')).to.equal('lyrics.json');
-      expect(variantIndex.data['com.example.title'][0].quotedString('value')).to.equal('This is an example');
-      expect(variantIndex.data['com.example.title'][1].quotedString('value')).to.equal('Este es un ejemplo');
+      expect(masterIndex.data['com.example.lyrics'][0].quotedString('uri')).to.equal('lyrics.json');
+      expect(masterIndex.data['com.example.title'][0].quotedString('value')).to.equal('This is an example');
+      expect(masterIndex.data['com.example.title'][1].quotedString('value')).to.equal('Este es un ejemplo');
     })
 
   })
@@ -399,16 +399,16 @@ describe('M3U8Playlist', function() {
       });
     })
 
-    it('should output valid variant files', function(done) {
+    it('should output valid master files', function(done) {
       var r = new Readable();
-      r.push(variantIndex.toString());
+      r.push(masterIndex.toString());
       r.push(null);
 
       // test that output string parses correctly
       m3u8parse(r, function(err, index) {
         should.not.exist(err);
         should.exist(index);
-        variantIndex.should.eql(index);
+        masterIndex.should.eql(index);
         done();
       });
     })
@@ -416,7 +416,7 @@ describe('M3U8Playlist', function() {
     it('should handle vendor extensions', function() {
       var index = m3u8parse.M3U8Playlist();
 
-      index.variant = true;
+      index.master = true;
       index.vendor = {
         '#EXT-MY-TEST': 'yeah!'
       };
