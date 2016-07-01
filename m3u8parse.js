@@ -46,9 +46,9 @@ function M3U8Playlist(obj) {
   }
 
   // for master streams
-  this.programs = clone(obj.programs) || [];
-  this.programs.forEach(function(program) {
-    if (program.info) program.info = new AttrList(program.info);
+  this.variants = clone(obj.variants) || [];
+  this.variants.forEach(function(variant) {
+    if (variant.info) variant.info = new AttrList(variant.info);
   });
 
   this.groups = clone(obj.groups) || {};
@@ -322,9 +322,9 @@ M3U8Playlist.prototype.toString = function() {
       m3u8 += '#EXT-X-I-FRAME-STREAM-INF:' + streamInfAttrs(iframe) + '\n';
     });
 
-    this.programs.forEach(function (program) {
-      m3u8 += '#EXT-X-STREAM-INF:' + streamInfAttrs(program.info) + '\n';
-      m3u8 += program.uri + '\n';
+    this.variants.forEach(function (variant) {
+      m3u8 += '#EXT-X-STREAM-INF:' + streamInfAttrs(variant.info) + '\n';
+      m3u8 += variant.uri + '\n';
     });
   }
 
@@ -481,7 +481,7 @@ function M3U8Parse(stream, options, cb) {
         return debug('ignoring unknown #EXT:' + cmd, line_no);
     } else if (m3u8.master) {
       meta.uri = line;
-      m3u8.programs.push(meta);
+      m3u8.variants.push(meta);
       meta = {};
     } else {
       if (!('duration' in meta))
