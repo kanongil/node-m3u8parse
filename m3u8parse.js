@@ -282,6 +282,35 @@ M3U8Playlist.prototype.toString = function() {
     return attrs;
   }
 
+  if (!this.variant) {
+    m3u8 += '#EXT-X-TARGETDURATION:' + this.target_duration + '\n';
+
+    if (this.type)
+      m3u8 += '#EXT-X-PLAYLIST-TYPE:' + this.type + '\n';
+
+    if (this.version < 7 && !this.allow_cache)
+      m3u8 += '#EXT-X-ALLOW-CACHE:NO\n';
+
+    var firstSeqNo = parseInt(this.first_seq_no, 10) || 0;
+    if (firstSeqNo !== 0)
+      m3u8 += '#EXT-X-MEDIA-SEQUENCE:' + firstSeqNo + '\n';
+
+    if (this.type !== this.PlaylistType.VOD && this.type !== this.PlaylistType.EVENT) {
+      var discontinuitySequence = parseInt(this.discontinuity_sequence, 10) || 0;
+      if (discontinuitySequence !== 0)
+        m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + discontinuitySequence + '\n'; // soft V6
+    }
+
+    if (this.version >= 4 && this.i_frames_only)
+      m3u8 += '#EXT-X-I-FRAMES-ONLY\n';
+  }
+
+  if (this.start && Object.keys(this.start).length)
+    m3u8 += '#EXT-X-START:' + new AttrList(this.start) + '\n'; // soft V6
+
+  if (this.independent_segments)
+    m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n'; // soft V6
+
   if (this.variant) {
     var dataId, groupId, programId;
 
@@ -311,34 +340,7 @@ M3U8Playlist.prototype.toString = function() {
         m3u8 += program.uri + '\n';
       });
     }
-  } else {
-    m3u8 += '#EXT-X-TARGETDURATION:' + this.target_duration + '\n';
-
-    if (this.type)
-      m3u8 += '#EXT-X-PLAYLIST-TYPE:' + this.type + '\n';
-
-    if (this.version < 7 && !this.allow_cache)
-      m3u8 += '#EXT-X-ALLOW-CACHE:NO\n';
-
-    var firstSeqNo = parseInt(this.first_seq_no, 10) || 0;
-    if (firstSeqNo !== 0)
-      m3u8 += '#EXT-X-MEDIA-SEQUENCE:' + firstSeqNo + '\n';
-
-    if (this.type !== this.PlaylistType.VOD && this.type !== this.PlaylistType.EVENT) {
-      var discontinuitySequence = parseInt(this.discontinuity_sequence, 10) || 0;
-      if (discontinuitySequence !== 0)
-        m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + discontinuitySequence + '\n'; // soft V6
-    }
-
-    if (this.version >= 4 && this.i_frames_only)
-      m3u8 += '#EXT-X-I-FRAMES-ONLY\n';
   }
-
-  if (this.start && Object.keys(this.start).length)
-    m3u8 += '#EXT-X-START:' + new AttrList(this.start) + '\n'; // soft V6
-
-  if (this.independent_segments)
-    m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n'; // soft V6
 
   // add vendor extensions
   for (var ext in (this.vendor || {})) {
