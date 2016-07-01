@@ -565,7 +565,6 @@ function M3U8Parse(stream, options, cb) {
       m3u8.groups[id].push(attrs);
     },
     '#EXT-X-I-FRAME-STREAM-INF': function(arg) {
-      m3u8.master = true;
       m3u8.iframes.push(new AttrList(arg));
     },
     '#EXT-X-SESSION-DATA': function(arg) {
