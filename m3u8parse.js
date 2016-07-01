@@ -69,6 +69,10 @@ function M3U8Playlist(obj) {
       list[idx] = new AttrList(list[idx]);
   }, this);
 
+  this.session_keys = clone(obj.session_keys) || []; // V7
+  for (var idx = 0; idx < this.session_keys.length; idx++)
+    this.session_keys[idx] = new AttrList(this.session_keys[idx]);
+
   // custom vendor extensions
   if (obj.vendor)
     this.vendor = clone(obj.vendor);
@@ -306,6 +310,10 @@ M3U8Playlist.prototype.toString = function() {
     m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n'; // soft V6
 
   if (this.master) {
+    this.session_keys.forEach(function (key) {
+      m3u8 += '#EXT-X-SESSION-KEY:' + new AttrList(key) + '\n';
+    });
+
     for (var dataId in this.data) {  // soft V7
       this.data[dataId].forEach(function (data) {
         m3u8 += '#EXT-X-SESSION-DATA:' + new AttrList(data) + '\n';
@@ -577,6 +585,9 @@ function M3U8Parse(stream, options, cb) {
         }
         m3u8.data[id].push(attrs);
       }
+    },
+    '#EXT-X-SESSION-KEY': function(arg) {
+      m3u8.session_keys.push(new AttrList(arg));
     }
   };
 
