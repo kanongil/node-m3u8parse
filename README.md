@@ -7,10 +7,6 @@ This module is tested and is used in production systems.
 [![Build Status](https://travis-ci.org/kanongil/node-m3u8parse.svg?branch=master)](https://travis-ci.org/kanongil/node-m3u8parse)
 [![Coverage Status](https://coveralls.io/repos/kanongil/node-m3u8parse/badge.svg?branch=master&service=github)](https://coveralls.io/github/kanongil/node-m3u8parse?branch=master)
 
-## Known Issues
-
- * Indexes with more than one `EXT-X-KEY` entry per segment are not supported.
-
 ## TODO
 
  * Validation option.
