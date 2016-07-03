@@ -1,22 +1,26 @@
 "use strict";
 
-var util = require('util'),
-    split = require('split'),
-    clone = require('clone');
+const util = require('util');
+const split = require('split');
+const clone = require('clone');
 
-var AttrList = require('./attrlist');
+const AttrList = require('./attrlist');
 
-var debug = function () {};
+let debug = function () {};
 try {
   debug = require('debug')('m3u8parse');
 } catch (err) {}
 
-var exports = module.exports = M3U8Parse;
 
-exports.M3U8Playlist = M3U8Playlist;
-exports.M3U8Segment = M3U8Segment;
-exports.AttrList = AttrList;
-exports.ParserError = ParserError;
+function ParserError(msg, line, line_no, constr) {
+  Error.captureStackTrace(this, constr || this);
+  this.message = msg || 'Error';
+  this.line = line;
+  this.lineNumber = line_no;
+}
+util.inherits(ParserError, Error);
+ParserError.prototype.name = 'Parser Error';
+
 
 function M3U8Playlist(obj) {
   if (!(this instanceof M3U8Playlist))
@@ -40,37 +44,35 @@ function M3U8Playlist(obj) {
 
   this.segments = [];
   if (obj.segments) {
-    this.segments = obj.segments.map(function (segment) {
-      return new M3U8Segment(segment);
-    });
+    this.segments = obj.segments.map((segment) =>  new M3U8Segment(segment));
   }
 
   // for master streams
   this.variants = clone(obj.variants) || [];
-  this.variants.forEach(function(variant) {
+  this.variants.forEach((variant) => {
     if (variant.info) variant.info = new AttrList(variant.info);
   });
 
   this.groups = clone(obj.groups) || {};
-  Object.keys(this.groups).forEach(function(id) {
-    var list = this.groups[id];
-    for (var idx = 0; idx < list.length; idx++)
+  Object.keys(this.groups).forEach((id) => {
+    let list = this.groups[id];
+    for (let idx = 0; idx < list.length; idx++)
       list[idx] = new AttrList(list[idx]);
-  }, this);
+  });
 
   this.iframes = clone(obj.iframes) || []; // V4
-  for (var idx = 0; idx < this.iframes.length; idx++)
+  for (let idx = 0; idx < this.iframes.length; idx++)
     this.iframes[idx] = new AttrList(this.iframes[idx]);
 
   this.data = clone(obj.data) || {}; // V7
-  Object.keys(this.data).forEach(function(id) {
-    var list = this.data[id];
-    for (var idx = 0; idx < list.length; idx++)
+  Object.keys(this.data).forEach((id) => {
+    let list = this.data[id];
+    for (let idx = 0; idx < list.length; idx++)
       list[idx] = new AttrList(list[idx]);
-  }, this);
+  });
 
   this.session_keys = clone(obj.session_keys) || []; // V7
-  for (var idx = 0; idx < this.session_keys.length; idx++)
+  for (let idx = 0; idx < this.session_keys.length; idx++)
     this.session_keys[idx] = new AttrList(this.session_keys[idx]);
 
   // custom vendor extensions
@@ -84,9 +86,7 @@ M3U8Playlist.prototype.PlaylistType = {
 };
 
 M3U8Playlist.prototype.totalDuration = function() {
-  return this.segments.reduce(function(sum, segment) {
-    return sum + segment.duration;
-  }, 0);
+  return this.segments.reduce((sum, segment) => sum + segment.duration, 0);
 };
 
 M3U8Playlist.prototype.isLive = function() {
@@ -97,13 +97,13 @@ M3U8Playlist.prototype.startSeqNo = function(full) {
   if (this.segments.length === 0) return -1;
   if (!this.isLive() || full) return this.first_seq_no;
 
-  var duration = this.target_duration * 3;
-  for (var i = ~~this.segments.length - 1; i > 0; i--) {
-    duration -= this.segments[i].duration;
+  let idx, duration = this.target_duration * 3;
+  for (idx = ~~this.segments.length - 1; idx > 0; idx--) {
+    duration -= this.segments[idx].duration;
     if (duration < 0) break;
   }
   // TODO: validate that correct seqNo is returned
-  return this.first_seq_no + i;
+  return this.first_seq_no + idx;
 };
 
 M3U8Playlist.prototype.lastSeqNo = function() {
@@ -116,19 +116,19 @@ M3U8Playlist.prototype.isValidSeqNo = function(seqNo) {
 };
 
 function lastSegmentProperty(index, key, seqNo, incrFn) {
-  var segment;
+  let segment;
   while ((segment = index.getSegment(seqNo--)) !== null) {
     if (incrFn && incrFn(segment))
       return null;
-    var val = segment[key];
+    let val = segment[key];
     if (val) return val;
   }
   return null;
 }
 
 M3U8Playlist.prototype.dateForSeqNo = function(seqNo) {
-  var elapsed = 0;
-  var program_time = lastSegmentProperty(this, 'program_time', seqNo, function(segment) {
+  let elapsed = 0;
+  let program_time = lastSegmentProperty(this, 'program_time', seqNo, (segment) => {
     elapsed += segment.duration;
     return segment.discontinuity; // abort on discontinuity
   });
@@ -142,7 +142,7 @@ M3U8Playlist.prototype.seqNoForDate = function(date, findNearestAfter) {
     date = null;
   }
 
-  var startTime = date;
+  let startTime = date;
   if (typeof date !== 'number')
     startTime = date ? +new Date(date) : Date.now();
 
@@ -150,12 +150,12 @@ M3U8Playlist.prototype.seqNoForDate = function(date, findNearestAfter) {
   findNearestAfter = !!findNearestAfter;
 
   // no assumptions are made about monotonic time
-  var firstValid = { seqNo: -1, delta: null, duration: 0 };
-  var segmentEndTime = -1;
+  let firstValid = { seqNo: -1, delta: null, duration: 0 };
+  let segmentEndTime = -1;
 
-  var segments = this.segments, count = ~~segments.length;
-  for (var idx = 0; idx < count; idx++) {
-    var segment = segments[idx];
+  let segments = this.segments, count = ~~segments.length;
+  for (let idx = 0; idx < count; idx++) {
+    let segment = segments[idx];
 
     if (segment.program_time) {
       segmentEndTime = segment.program_time.getTime();
@@ -163,12 +163,12 @@ M3U8Playlist.prototype.seqNoForDate = function(date, findNearestAfter) {
       segmentEndTime = -1;
     }
 
-    var segmentDuration = 1000 * segment.duration;
+    let segmentDuration = 1000 * segment.duration;
     if (segmentEndTime !== -1 && segmentDuration > 0) {
       segmentEndTime += segmentDuration;
 
       // update firstValid
-      var delta = segmentEndTime - startTime - 1;
+      let delta = segmentEndTime - startTime - 1;
       if (delta >= 0 && (firstValid.delta === null || delta < firstValid.delta || delta < segmentDuration)) {
         firstValid.seqNo = this.first_seq_no + idx;
         firstValid.delta = delta;
@@ -184,16 +184,16 @@ M3U8Playlist.prototype.seqNoForDate = function(date, findNearestAfter) {
 };
 
 M3U8Playlist.prototype.keysForSeqNo = function(seqNo) {
-  var segment, keys = {}, initialSeqNo = seqNo;
+  let segment, keys = {}, initialSeqNo = seqNo;
   while ((segment = this.getSegment(seqNo--)) !== null) {
     if (!segment.keys) continue;
 
-    for (var idx = 0; idx < segment.keys.length; idx++) {
-      var key = segment.keys[idx];
-      var keyformat = key.keyformat ? key.enumeratedString('keyformat') : 'identity';
+    for (let idx = 0; idx < segment.keys.length; idx++) {
+      let key = segment.keys[idx];
+      let keyformat = key.keyformat ? key.enumeratedString('keyformat') : 'identity';
 
       if (!keys[keyformat]) {
-        var keymethod = key.enumeratedString('method');
+        let keymethod = key.enumeratedString('method');
         if (keymethod === 'NONE') {
           return null;
         }
@@ -210,33 +210,31 @@ M3U8Playlist.prototype.keysForSeqNo = function(seqNo) {
     keys.identity.hexadecimalInteger('iv', initialSeqNo);
   }
 
-  var result = Object.keys(keys).map(function(keyformat) {
-    return keys[keyformat];
-  });
+  let result = Object.keys(keys).map((keyformat) => keys[keyformat]);
 
   return result.length ? result : null;
 };
 
 M3U8Playlist.prototype.byterangeForSeqNo = function(seqNo) {
-  var seqIndex = seqNo - this.first_seq_no;
-  var seqSegment = this.segments[seqIndex] || null;
+  let seqIndex = seqNo - this.first_seq_no;
+  let seqSegment = this.segments[seqIndex] || null;
   if (!seqSegment || !seqSegment.byterange) return null;
 
-  var length = parseInt(seqSegment.byterange.length, 10);
+  let length = parseInt(seqSegment.byterange.length, 10);
   if (isNaN(length)) return null;
 
-  var offset = parseInt(seqSegment.byterange.offset, 10);
+  let offset = parseInt(seqSegment.byterange.offset, 10);
   if (isNaN(offset)) {
     // compute actual value from history
     offset = 0;
 
-    for (var idx = seqIndex-1; idx >= 0; idx--) {
-      var segment = this.segments[idx];
+    for (let idx = seqIndex-1; idx >= 0; idx--) {
+      let segment = this.segments[idx];
       if (segment.uri !== seqSegment.uri) continue;
       if (!segment.byterange) break; // consistency error
 
-      var segmentLength = parseInt(segment.byterange.length, 10);
-      var segmentOffset = parseInt(segment.byterange.offset, 10);
+      let segmentLength = parseInt(segment.byterange.length, 10);
+      let segmentOffset = parseInt(segment.byterange.offset, 10);
       if (isNaN(segmentLength)) break; // consistency error
 
       offset += segmentLength;
@@ -254,15 +252,13 @@ M3U8Playlist.prototype.byterangeForSeqNo = function(seqNo) {
 };
 
 M3U8Playlist.prototype.mapForSeqNo = function(seqNo) {
-  return lastSegmentProperty(this, 'map', seqNo, function(segment) {
-    return segment.discontinuity; // abort on discontinuity
-  });
+  return lastSegmentProperty(this, 'map', seqNo, (segment) => segment.discontinuity); // abort on discontinuity
 };
 
 M3U8Playlist.prototype.getSegment = function(seqNo, independent) {
   // TODO: should we check for number type and throw if not?
-  var index = seqNo - this.first_seq_no;
-  var segment = this.segments[index] || null;
+  let index = seqNo - this.first_seq_no;
+  let segment = this.segments[index] || null;
   if (independent && segment) {
     segment = new M3U8Segment(segment);
     // EXT-X-KEY, EXT-X-MAP, EXT-X-PROGRAM-DATE-TIME, EXT-X-BYTERANGE needs to be individualized
@@ -278,13 +274,13 @@ M3U8Playlist.prototype.getSegment = function(seqNo, independent) {
 };
 
 M3U8Playlist.prototype.toString = function() {
-  var m3u8 = '#EXTM3U\n';
+  let m3u8 = '#EXTM3U\n';
 
   if (this.version > 1)
     m3u8 += '#EXT-X-VERSION:' + this.version + '\n';
 
   function streamInfAttrs(obj, version) {
-    var attrs = new AttrList(obj);
+    let attrs = new AttrList(obj);
     if (version >= 6) {
       delete attrs['program-id'];
     }
@@ -300,12 +296,12 @@ M3U8Playlist.prototype.toString = function() {
     if (this.version < 7 && !this.allow_cache)
       m3u8 += '#EXT-X-ALLOW-CACHE:NO\n';
 
-    var firstSeqNo = parseInt(this.first_seq_no, 10) || 0;
+    let firstSeqNo = parseInt(this.first_seq_no, 10) || 0;
     if (firstSeqNo !== 0)
       m3u8 += '#EXT-X-MEDIA-SEQUENCE:' + firstSeqNo + '\n';
 
     if (this.type !== this.PlaylistType.VOD && this.type !== this.PlaylistType.EVENT) {
-      var discontinuitySequence = parseInt(this.discontinuity_sequence, 10) || 0;
+      let discontinuitySequence = parseInt(this.discontinuity_sequence, 10) || 0;
       if (discontinuitySequence !== 0)
         m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + discontinuitySequence + '\n'; // soft V6
     }
@@ -321,49 +317,49 @@ M3U8Playlist.prototype.toString = function() {
     m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n'; // soft V6
 
   if (this.master) {
-    this.session_keys.forEach(function (key) {
+    this.session_keys.forEach((key) => {
       m3u8 += '#EXT-X-SESSION-KEY:' + new AttrList(key) + '\n';
     });
 
     // add non-standard marlin entry
     if (this.keys && util.isArray(this.keys)) {
-      this.keys.forEach(function(key) {
+      this.keys.forEach((key) => {
         m3u8 += '#EXT-X-KEY:' + new AttrList(key) + '\n';
       });
     }
 
-    for (var dataId in this.data) {  // soft V7
-      this.data[dataId].forEach(function (data) {
+    for (let dataId in this.data) {  // soft V7
+      this.data[dataId].forEach((data) => {
         m3u8 += '#EXT-X-SESSION-DATA:' + new AttrList(data) + '\n';
       });
     }
 
-    for (var groupId in this.groups) {
-      this.groups[groupId].forEach(function (group) {
+    for (let groupId in this.groups) {
+      this.groups[groupId].forEach((group) => {
         m3u8 += '#EXT-X-MEDIA:' + new AttrList(group) + '\n';
       });
     }
 
-    this.iframes.forEach(function (iframe) {
+    this.iframes.forEach((iframe) => {
       m3u8 += '#EXT-X-I-FRAME-STREAM-INF:' + streamInfAttrs(iframe) + '\n';
     });
 
-    this.variants.forEach(function (variant) {
+    this.variants.forEach((variant) => {
       m3u8 += '#EXT-X-STREAM-INF:' + streamInfAttrs(variant.info) + '\n';
       m3u8 += variant.uri + '\n';
     });
   }
 
   // add vendor extensions
-  for (var ext in (this.vendor || {})) {
-    var value = this.vendor[ext];
+  for (let ext in (this.vendor || {})) {
+    let value = this.vendor[ext];
     m3u8 += ext;
     if (value !== null && typeof value !== 'undefined')
       m3u8 += ':' + value;
     m3u8 += '\n';
   }
 
-  this.segments.forEach(function (segment) {
+  this.segments.forEach((segment) => {
     m3u8 += segment.toString();
   });
 
@@ -389,9 +385,7 @@ function M3U8Segment(uri, meta, version) {
   if (meta.program_time)
     this.program_time = new Date(meta.program_time);
   if (meta.keys) {
-    this.keys = meta.keys.map(function(key) {
-      return new AttrList(key);
-    });
+    this.keys = meta.keys.map((key) => new AttrList(key));
   }
 
   if (version >= 4 && meta.byterange)
@@ -405,28 +399,28 @@ function M3U8Segment(uri, meta, version) {
 }
 
 M3U8Segment.prototype.toString = function() {
-  var res = '';
+  let res = '';
   if (this.discontinuity) res += '#EXT-X-DISCONTINUITY\n';
   if (this.program_time) {
-    var program_time = this.program_time.toISOString ? this.program_time.toISOString() : this.program_time;
+    let program_time = this.program_time.toISOString ? this.program_time.toISOString() : this.program_time;
     res += '#EXT-X-PROGRAM-DATE-TIME:' + program_time + '\n';
   }
   if (this.keys) {
-    this.keys.forEach(function(key) {
+    this.keys.forEach((key) => {
       res += '#EXT-X-KEY:' + AttrList(key) + '\n';
     });
   }
   if (this.map) res += '#EXT-X-MAP:' + AttrList(this.map) + '\n';
   if (this.byterange && (this.byterange.length || this.byterange.length === 0)) {
-    var range = '' + this.byterange.length;
+    let range = '' + this.byterange.length;
     if (this.byterange.offset || this.byterange.offset === 0)
       range += '@' + this.byterange.offset;
     res += '#EXT-X-BYTERANGE:' + range + '\n';
   }
 
   // add vendor extensions
-  for (var ext in (this.vendor || {})) {
-    var value = this.vendor[ext];
+  for (let ext in (this.vendor || {})) {
+    let value = this.vendor[ext];
     res += ext;
     if (value !== null && typeof value !== 'undefined')
       res += ':' + value;
@@ -437,7 +431,7 @@ M3U8Segment.prototype.toString = function() {
 };
 
 function M3U8Parse(stream, options, cb) {
-  var m3u8 = new M3U8Playlist(),
+  let m3u8 = new M3U8Playlist(),
       line_no = 0,
       meta = {};
 
@@ -446,9 +440,9 @@ function M3U8Parse(stream, options, cb) {
     options = {};
   }
 
-  var extensions = clone(options.extensions || {});
+  let extensions = clone(options.extensions || {});
 
-  var cr = stream.pipe(split());
+  let cr = stream.pipe(split());
   cr.on('data', ParseLine);
   cr.on('end', Complete);
 
@@ -469,14 +463,13 @@ function M3U8Parse(stream, options, cb) {
     if (line_no === 0)
       return ReportError(new ParserError('No line data', '', -1));
     cleanup();
-//    m3u8.segments = m3u8.segments.slice(0,3); // temp hack
     cb(null, m3u8);
   }
 
   function ParseExt(cmd, arg) {
     // parse vendor extensions
     if (cmd in extensions) {
-      var extObj = options.extensions[cmd] ? meta : m3u8;
+      let extObj = options.extensions[cmd] ? meta : m3u8;
       if (!extObj.vendor) extObj.vendor = {};
 
       extObj.vendor[cmd] = arg;
@@ -503,11 +496,11 @@ function M3U8Parse(stream, options, cb) {
     if (!line.length) return true; // blank lines are ignored (3.1)
 
     if (line[0] === '#') {
-      var matches = /^(#EXT[^:]*)(:?.*)$/.exec(line);
+      let matches = /^(#EXT[^:]*)(:?.*)$/.exec(line);
       if (!matches)
         return debug('ignoring comment', line);
 
-      var cmd = matches[1],
+      let cmd = matches[1],
           arg = matches[2].length > 1 ? matches[2].slice(1) : null;
 
       if (!ParseExt(cmd, arg))
@@ -527,70 +520,70 @@ function M3U8Parse(stream, options, cb) {
   }
 
   // TODO: add more validation logic
-  var extParser = {
-    '#EXT-X-VERSION': function(arg) {
+  let extParser = {
+    '#EXT-X-VERSION': (arg) => {
       m3u8.version = parseInt(arg, 10);
 
-      var attrname;
+      let attrname;
       if (m3u8.version >= 4)
         for (attrname in extParserV4) { extParser[attrname] = extParserV4[attrname]; }
       if (m3u8.version >= 5)
         for (attrname in extParserV5) { extParser[attrname] = extParserV5[attrname]; }
     },
-    '#EXT-X-TARGETDURATION': function(arg) {
+    '#EXT-X-TARGETDURATION': (arg) => {
       m3u8.target_duration = parseInt(arg, 10);
     },
-    '#EXT-X-ALLOW-CACHE': function(arg) {
+    '#EXT-X-ALLOW-CACHE': (arg) => {
       m3u8.allow_cache = (arg !== 'NO');
     },
-    '#EXT-X-MEDIA-SEQUENCE': function(arg) {
+    '#EXT-X-MEDIA-SEQUENCE': (arg) => {
       m3u8.first_seq_no = parseInt(arg, 10);
     },
-    '#EXT-X-DISCONTINUITY-SEQUENCE':function(arg) {
+    '#EXT-X-DISCONTINUITY-SEQUENCE':(arg) => {
       m3u8.discontinuity_sequence = parseInt(arg, 10);
     },
-    '#EXT-X-PLAYLIST-TYPE': function(arg) {
+    '#EXT-X-PLAYLIST-TYPE': (arg) => {
       m3u8.type = arg;
     },
-    '#EXT-X-START': function(arg) {
+    '#EXT-X-START': (arg) => {
       m3u8.start = new AttrList(arg);
     },
-    '#EXT-X-INDEPENDENT-SEGMENTS': function() {
+    '#EXT-X-INDEPENDENT-SEGMENTS': () => {
       m3u8.independent_segments = true;
     },
-    '#EXT-X-ENDLIST': function() {
+    '#EXT-X-ENDLIST': () => {
       m3u8.ended = true;
     },
 
-    '#EXTINF': function(arg) {
-      var n = arg.split(',');
+    '#EXTINF': (arg) => {
+      let n = arg.split(',');
       meta.duration = parseFloat(n.shift());
       meta.title = n.join(',');
 
       if (meta.duration <= 0)
         return ReportError(new ParserError('Invalid duration', '#EXTINF:' + arg, line_no));
     },
-    '#EXT-X-KEY': function(arg) {
+    '#EXT-X-KEY': (arg) => {
       if (!meta.keys) {
         meta.keys = [];
       }
       meta.keys.push(new AttrList(arg));
     },
-    '#EXT-X-PROGRAM-DATE-TIME': function(arg) {
+    '#EXT-X-PROGRAM-DATE-TIME': (arg) => {
       meta.program_time = new Date(arg);
     },
-    '#EXT-X-DISCONTINUITY': function() {
+    '#EXT-X-DISCONTINUITY': () => {
       meta.discontinuity = true;
     },
 
     // master
-    '#EXT-X-STREAM-INF': function(arg) {
+    '#EXT-X-STREAM-INF': (arg) => {
       m3u8.master = true;
       meta.info = new AttrList(arg);
     },
     // master v4 since master streams are not required to specify version
-    '#EXT-X-MEDIA': function(arg) {
-      var attrs = new AttrList(arg),
+    '#EXT-X-MEDIA': (arg) => {
+      let attrs = new AttrList(arg),
           id = attrs.quotedString('group-id') || '#';
 
       if (!(id in m3u8.groups)) {
@@ -600,11 +593,11 @@ function M3U8Parse(stream, options, cb) {
       }
       m3u8.groups[id].push(attrs);
     },
-    '#EXT-X-I-FRAME-STREAM-INF': function(arg) {
+    '#EXT-X-I-FRAME-STREAM-INF': (arg) => {
       m3u8.iframes.push(new AttrList(arg));
     },
-    '#EXT-X-SESSION-DATA': function(arg) {
-      var attrs = new AttrList(arg),
+    '#EXT-X-SESSION-DATA': (arg) => {
+      let attrs = new AttrList(arg),
           id = attrs.quotedString('data-id');
 
       if (id) {
@@ -614,35 +607,33 @@ function M3U8Parse(stream, options, cb) {
         m3u8.data[id].push(attrs);
       }
     },
-    '#EXT-X-SESSION-KEY': function(arg) {
+    '#EXT-X-SESSION-KEY': (arg) => {
       m3u8.session_keys.push(new AttrList(arg));
     }
   };
 
-  var extParserV4 = {
-    '#EXT-X-I-FRAMES-ONLY': function() {
+  let extParserV4 = {
+    '#EXT-X-I-FRAMES-ONLY': () => {
       m3u8.i_frames_only = true;
     },
-    '#EXT-X-BYTERANGE': function(arg) {
-      var n = arg.split('@');
+    '#EXT-X-BYTERANGE': (arg) => {
+      let n = arg.split('@');
       meta.byterange = {length:parseInt(n[0], 10)};
       if (n.length > 1)
         meta.byterange.offset = parseInt(n[1], 10);
     }
   };
 
-  var extParserV5 = {
-    '#EXT-X-MAP': function(arg) {
+  let extParserV5 = {
+    '#EXT-X-MAP': (arg) => {
       meta.map = new AttrList(arg);
     }
   };
 }
 
-function ParserError(msg, line, line_no, constr) {
-  Error.captureStackTrace(this, constr || this);
-  this.message = msg || 'Error';
-  this.line = line;
-  this.lineNumber = line_no;
-}
-util.inherits(ParserError, Error);
-ParserError.prototype.name = 'Parser Error';
+exports = module.exports = M3U8Parse;
+
+exports.M3U8Playlist = M3U8Playlist;
+exports.M3U8Segment = M3U8Segment;
+exports.AttrList = AttrList;
+exports.ParserError = ParserError;

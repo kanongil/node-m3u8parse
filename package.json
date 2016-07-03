@@ -16,6 +16,9 @@
   ],
   "author": "Gil Pedersen <gpdev@gpost.dk>",
   "license": "BSD-2-Clause",
+  "engines": {
+    "node": ">=4.0.0"
+  },
   "dependencies": {
     "clone": "^1.0.1",
     "cuint": "^0.2.0",
