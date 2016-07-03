@@ -151,6 +151,8 @@ describe('M3U8Playlist', function() {
 
     it('should clone passed object', function() {
       testIndex.should.eql(new m3u8parse.M3U8Playlist(testIndex));
+      testIndexAlt.should.eql(new m3u8parse.M3U8Playlist(testIndexAlt));
+      testIndexSingle.should.eql(new m3u8parse.M3U8Playlist(testIndexSingle));
       masterIndex.should.eql(new m3u8parse.M3U8Playlist(masterIndex));
     })
   })
@@ -280,36 +282,52 @@ describe('M3U8Playlist', function() {
     })
   })
 
-  describe('#keyForSeqNo()', function() {
+  describe('#keysForSeqNo()', function() {
     it('should return null for for out of bounds sequence numbers', function() {
-      should.not.exist(testIndex.keyForSeqNo(0));
-      should.not.exist(testIndexAlt.keyForSeqNo("100"));
-      should.not.exist(testIndex.keyForSeqNo(10000));
-      should.not.exist(testIndexAlt.keyForSeqNo("10000"));
+      should.not.exist(testIndex.keysForSeqNo(0));
+      should.not.exist(testIndexAlt.keysForSeqNo("100"));
+      should.not.exist(testIndexSingle.keysForSeqNo(100));
+      should.not.exist(testIndex.keysForSeqNo(10000));
+      should.not.exist(testIndexAlt.keysForSeqNo("10000"));
+      should.not.exist(testIndexSingle.keysForSeqNo(10000));
     })
     it('should return null for for indexes with no key information', function() {
-      should.not.exist(masterIndex.keyForSeqNo(0));
+      should.not.exist(masterIndex.keysForSeqNo(0));
 
       var index = new m3u8parse.M3U8Playlist(testIndex);
-      delete index.segments[0].key;
-      should.not.exist(index.keyForSeqNo(7794));
+      delete index.segments[0].keys;
+      should.not.exist(index.keysForSeqNo(7794));
     })
     it('should return correct value for numbers in range', function() {
-      testIndex.keyForSeqNo(7794).should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e72'}));
-      testIndex.keyForSeqNo(7795).should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e73'}));
-      testIndex.keyForSeqNo(7796).should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e74'}));
-      testIndex.keyForSeqNo(7797).should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x1e75'}));
+      testIndex.keysForSeqNo(7794).should.eql([new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e72'})]);
+      testIndex.keysForSeqNo(7795).should.eql([new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e73'})]);
+      testIndex.keysForSeqNo(7796).should.eql([new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e74'})]);
+      testIndex.keysForSeqNo(7797).should.eql([new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x1e75'})]);
+
+      testIndexSingle.keysForSeqNo(300).should.eql([new m3u8parse.AttrList({method:'SAMPLE-AES', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1234'})]);
+      should.not.exist(testIndexSingle.keysForSeqNo(301));
+      testIndexSingle.keysForSeqNo(302).should.eql([
+        new m3u8parse.AttrList({method:'SAMPLE-AES', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x4321'}),
+        new m3u8parse.AttrList({method:'SAMPLE-AES', uri:'"skd://key53"', keyformat:'"com.apple.streamingkeydelivery"', keyformatversions:'"1"'}),
+      ]);
+      testIndexSingle.keysForSeqNo(303).should.eql([
+        new m3u8parse.AttrList({method:'SAMPLE-AES', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x4322'}),
+        new m3u8parse.AttrList({method:'SAMPLE-AES', uri:'"skd://key53"', keyformat:'"com.apple.streamingkeydelivery"', keyformatversions:'"1"'}),
+      ]);
+    })
+    it('should handle multiple keyformats', function() {
     })
     it('should return null after method=NONE', function() {
-      should.not.exist(testIndexAlt.keyForSeqNo(7795));
+      should.not.exist(testIndexAlt.keysForSeqNo(7795));
+      should.not.exist(testIndexSingle.keysForSeqNo(301));
     })
   })
 
   describe('#byterangeForSeqNo()', function() {
     it('should return null for for out of bounds sequence numbers', function() {
-      should.not.exist(testIndexSingle.keyForSeqNo(0));
-      should.not.exist(testIndexSingle.keyForSeqNo("100"));
-      should.not.exist(testIndexSingle.keyForSeqNo("10000"));
+      should.not.exist(testIndexSingle.byterangeForSeqNo(0));
+      should.not.exist(testIndexSingle.byterangeForSeqNo("100"));
+      should.not.exist(testIndexSingle.byterangeForSeqNo("10000"));
     })
     it('should return null for for indexes with no byterange information', function() {
       should.not.exist(testIndex.byterangeForSeqNo(7794));
@@ -341,10 +359,10 @@ describe('M3U8Playlist', function() {
       testIndex.getSegment(7795, true).program_time.should.eql(new Date('2013-10-29T11:34:15.833Z'));
       testIndex.getSegment(7796, true).program_time.should.eql(new Date('2013-10-29T11:34:30.833Z'));
       testIndex.getSegment(7797, true).program_time.should.eql(new Date('2013-10-29T11:34:44.000Z'));
-      testIndex.getSegment(7794, true).key.should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e72'}));
-      testIndex.getSegment(7795, true).key.should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e73'}));
-      testIndex.getSegment(7796, true).key.should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e74'}));
-      testIndex.getSegment(7797, true).key.should.eql(new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x1e75'}));
+      testIndex.getSegment(7794, true).keys.should.eql([new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e72'})]);
+      testIndex.getSegment(7795, true).keys.should.eql([new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e73'})]);
+      testIndex.getSegment(7796, true).keys.should.eql([new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e74'})]);
+      testIndex.getSegment(7797, true).keys.should.eql([new m3u8parse.AttrList({method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x1e75'})]);
       testIndexSingle.getSegment(302, true).byterange.should.eql({length:300000, offset:300000});
       should.not.exist(testIndex.getSegment(7794, true).map);
       should.not.exist(testIndex.getSegment(7797, true).map);

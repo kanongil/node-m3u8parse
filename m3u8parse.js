@@ -183,19 +183,38 @@ M3U8Playlist.prototype.seqNoForDate = function(date, findNearestAfter) {
   return firstValid.seqNo;
 };
 
-// TODO: support multiple key entries for a single segment - probably requires a version bump
-M3U8Playlist.prototype.keyForSeqNo = function(seqNo) {
-  var key = new AttrList(lastSegmentProperty(this, 'key', seqNo)),
-      keymethod = key.enumeratedString('method');
+M3U8Playlist.prototype.keysForSeqNo = function(seqNo) {
+  var segment, keys = {}, initialSeqNo = seqNo;
+  while ((segment = this.getSegment(seqNo--)) !== null) {
+    if (!segment.keys) continue;
 
-  if (!keymethod || keymethod === 'NONE')
-    return null;
+    for (var idx = 0; idx < segment.keys.length; idx++) {
+      var key = segment.keys[idx];
+      var keyformat = key.keyformat ? key.enumeratedString('keyformat') : 'identity';
 
-  var keyformat = (this.version >= 5 && key.keyformat) ? key.enumeratedString('keyformat') : 'identity';
-  if (keyformat === 'identity' && !key.iv)
-    key.hexadecimalInteger('iv', seqNo);
+      if (!keys[keyformat]) {
+        var keymethod = key.enumeratedString('method');
+        if (keymethod === 'NONE') {
+          return null;
+        }
+        keys[keyformat] = new AttrList(key);
 
-  return key;
+        if (this.version < 5) {
+          break;
+        }
+      }
+    }
+  }
+
+  if (keys.identity && !keys.identity.iv) {
+    keys.identity.hexadecimalInteger('iv', initialSeqNo);
+  }
+
+  var result = Object.keys(keys).map(function(keyformat) {
+    return keys[keyformat];
+  });
+
+  return result.length ? result : null;
 };
 
 M3U8Playlist.prototype.byterangeForSeqNo = function(seqNo) {
@@ -248,7 +267,7 @@ M3U8Playlist.prototype.getSegment = function(seqNo, independent) {
     segment = new M3U8Segment(segment);
     // EXT-X-KEY, EXT-X-MAP, EXT-X-PROGRAM-DATE-TIME, EXT-X-BYTERANGE needs to be individualized
     segment.program_time = this.dateForSeqNo(seqNo);
-    segment.key = this.keyForSeqNo(seqNo);
+    segment.keys = this.keysForSeqNo(seqNo);
     if (this.version >= 4)
       segment.byterange = this.byterangeForSeqNo(seqNo);
     if (this.version >= 5)
@@ -264,16 +283,8 @@ M3U8Playlist.prototype.toString = function() {
   if (this.version > 1)
     m3u8 += '#EXT-X-VERSION:' + this.version + '\n';
 
-  // add non-standard marlin entry
-  if (this.key) {
-    var keys = util.isArray(this.key) ? this.key : [this.key];
-    keys.forEach(function(key) {
-      m3u8 += '#EXT-X-KEY:' + AttrList(key) + '\n';
-    });
-  }
-
   function streamInfAttrs(obj, version) {
-    var attrs = AttrList(obj);
+    var attrs = new AttrList(obj);
     if (version >= 6) {
       delete attrs['program-id'];
     }
@@ -313,6 +324,13 @@ M3U8Playlist.prototype.toString = function() {
     this.session_keys.forEach(function (key) {
       m3u8 += '#EXT-X-SESSION-KEY:' + new AttrList(key) + '\n';
     });
+
+    // add non-standard marlin entry
+    if (this.keys && util.isArray(this.keys)) {
+      this.keys.forEach(function(key) {
+        m3u8 += '#EXT-X-KEY:' + new AttrList(key) + '\n';
+      });
+    }
 
     for (var dataId in this.data) {  // soft V7
       this.data[dataId].forEach(function (data) {
@@ -370,8 +388,11 @@ function M3U8Segment(uri, meta, version) {
   // optional
   if (meta.program_time)
     this.program_time = new Date(meta.program_time);
-  if (meta.key)
-    this.key = new AttrList(meta.key);
+  if (meta.keys) {
+    this.keys = meta.keys.map(function(key) {
+      return new AttrList(key);
+    });
+  }
 
   if (version >= 4 && meta.byterange)
     this.byterange = clone(meta.byterange);
@@ -390,7 +411,11 @@ M3U8Segment.prototype.toString = function() {
     var program_time = this.program_time.toISOString ? this.program_time.toISOString() : this.program_time;
     res += '#EXT-X-PROGRAM-DATE-TIME:' + program_time + '\n';
   }
-  if (this.key) res += '#EXT-X-KEY:' + AttrList(this.key) + '\n';
+  if (this.keys) {
+    this.keys.forEach(function(key) {
+      res += '#EXT-X-KEY:' + AttrList(key) + '\n';
+    });
+  }
   if (this.map) res += '#EXT-X-MAP:' + AttrList(this.map) + '\n';
   if (this.byterange && (this.byterange.length || this.byterange.length === 0)) {
     var range = '' + this.byterange.length;
@@ -546,7 +571,10 @@ function M3U8Parse(stream, options, cb) {
         return ReportError(new ParserError('Invalid duration', '#EXTINF:' + arg, line_no));
     },
     '#EXT-X-KEY': function(arg) {
-      meta.key = new AttrList(arg);
+      if (!meta.keys) {
+        meta.keys = [];
+      }
+      meta.keys.push(new AttrList(arg));
     },
     '#EXT-X-PROGRAM-DATE-TIME': function(arg) {
       meta.program_time = new Date(arg);
