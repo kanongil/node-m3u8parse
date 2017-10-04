@@ -1,18 +1,18 @@
-var fs = require('fs'),
-    path = require('path'),
+var path = require('path'),
     Readable = require('readable-stream').Readable,
     should = require('chai').should(),
-    expect = require('chai').expect;
+    expect = require('chai').expect,
+    describeForAllInputTypes = require('./input-types')(describe);
 
 var m3u8parse = require('../m3u8parse');
 
 var fixtureDir = path.join(__dirname, 'fixtures');
 
-describe('M3U8Parse', function() {
+describeForAllInputTypes('M3U8Parse', function(prepareInput) {
 
   it('should parse a valid live file', function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'enc.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'enc.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.not.exist(err);
       should.exist(index);
       index.master.should.be.false;
@@ -21,8 +21,8 @@ describe('M3U8Parse', function() {
   })
 
   it('should parse a valid VOD file', function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'vod.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'vod.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.not.exist(err);
       should.exist(index);
       index.master.should.be.false;
@@ -31,8 +31,8 @@ describe('M3U8Parse', function() {
   })
 
   it('should parse a basic master file', function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'variant.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'variant.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.not.exist(err);
       should.exist(index);
       index.master.should.be.true;
@@ -41,8 +41,8 @@ describe('M3U8Parse', function() {
   })
 
   it('should parse an advanced master file', function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v4.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'variant_v4.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.not.exist(err);
       should.exist(index);
       index.master.should.be.true;
@@ -51,8 +51,8 @@ describe('M3U8Parse', function() {
   })
 
   it('should parse a v6 master file', function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v6.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'variant_v6.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.not.exist(err);
       should.exist(index);
       index.master.should.be.true;
@@ -61,8 +61,8 @@ describe('M3U8Parse', function() {
   })
 
   it('should parse an iframe master file', function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'variant_iframe.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'variant_iframe.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.not.exist(err);
       should.exist(index);
       index.master.should.be.true;
@@ -71,8 +71,8 @@ describe('M3U8Parse', function() {
   })
 
   it('should handle vendor extensions', function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'enc.m3u8'));
-    m3u8parse(stream, { extensions: {'#EXT-X-UNKNOWN-EXTENSION':false, '#EXT-Y-META-EXTENSION':true} }, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'enc.m3u8'));
+    m3u8parse(input, { extensions: {'#EXT-X-UNKNOWN-EXTENSION':false, '#EXT-Y-META-EXTENSION':true} }, function(err, index) {
       should.not.exist(err);
       should.exist(index);
 
@@ -92,8 +92,8 @@ describe('M3U8Parse', function() {
   })
 
   it('should fail on invalid files', function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'empty.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'empty.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.exist(err);
       err.should.be.instanceof(m3u8parse.ParserError);
       done();
@@ -102,15 +102,15 @@ describe('M3U8Parse', function() {
 
 })
 
-describe('M3U8Playlist', function() {
+describeForAllInputTypes('M3U8Playlist', function(prepareInput) {
   var testIndex = null;
   var testIndexAlt = null;
   var testIndexSingle = null;
   var masterIndex = null;
 
   before(function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'enc.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'enc.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.not.exist(err);
       testIndex = index;
       done();
@@ -118,8 +118,8 @@ describe('M3U8Playlist', function() {
   })
 
   before(function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'enc-discont.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'enc-discont.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.not.exist(err);
       testIndexAlt = index;
       done();
@@ -127,8 +127,8 @@ describe('M3U8Playlist', function() {
   })
 
   before(function(done) {
-    var stream = fs.createReadStream(path.join(fixtureDir, 'enc-single.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'enc-single.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.not.exist(err);
       testIndexSingle = index;
       done();
@@ -136,8 +136,8 @@ describe('M3U8Playlist', function() {
   })
 
   before(function(done) {
-  	var stream = fs.createReadStream(path.join(fixtureDir, 'variant_v4.m3u8'));
-    m3u8parse(stream, function(err, index) {
+    var input = prepareInput(path.join(fixtureDir, 'variant_v4.m3u8'));
+    m3u8parse(input, function(err, index) {
       should.not.exist(err);
       masterIndex = index;
       done();

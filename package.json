@@ -15,6 +15,9 @@
     "audio"
   ],
   "author": "Gil Pedersen <gpdev@gpost.dk>",
+   "contributors": [
+    "M.K. (https://github.com/mk-pmb)"
+  ],
   "license": "BSD-2-Clause",
   "engines": {
     "node": ">=4.0.0"
@@ -22,10 +25,12 @@
   "dependencies": {
     "clone": "^1.0.1",
     "cuint": "^0.2.0",
-    "split": "^1.0.0"
+    "split": "^1.0.0",
+    "through2": "^2.0.3"
   },
   "devDependencies": {
     "chai": "^3.4.1",
+    "collect-stream": "^1.2.1",
     "coveralls": "^2.11.4",
     "istanbul": "^0.4.1",
     "mocha": "^2.2.1",

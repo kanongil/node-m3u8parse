@@ -3,6 +3,7 @@
 const util = require('util');
 const split = require('split');
 const clone = require('clone');
+const through2 = require('through2');
 
 const AttrList = require('./attrlist');
 
@@ -20,6 +21,23 @@ function ParserError(msg, line, line_no, constr) {
 }
 util.inherits(ParserError, Error);
 ParserError.prototype.name = 'Parser Error';
+
+
+function makeStream(x) {
+  var s;
+  if ((x && typeof x) === 'object') {
+    if (typeof x.pipe === 'function') { return x; }
+    if (Buffer.isBuffer(x)) { x = x.toString('UTF-8'); }
+  }
+  if (typeof x === 'string') {
+    s = through2();
+    s.write(x);
+    s.end();
+    return s;
+  }
+  throw new TypeError('Expected a stream, String or Buffer');
+}
+
 
 
 function M3U8Playlist(obj) {
@@ -430,7 +448,7 @@ M3U8Segment.prototype.toString = function() {
   return res + '#EXTINF:' + parseFloat(this.duration.toFixed(3)) + ',' + this.title + '\n' + this.uri + '\n';
 };
 
-function M3U8Parse(stream, options, cb) {
+function M3U8Parse(input, options, cb) {
   let m3u8 = new M3U8Playlist(),
       line_no = 0,
       meta = {};
@@ -442,6 +460,7 @@ function M3U8Parse(stream, options, cb) {
 
   let extensions = clone(options.extensions || {});
 
+  let stream = makeStream(input);
   let cr = stream.pipe(split());
   cr.on('data', ParseLine);
   cr.on('end', Complete);
