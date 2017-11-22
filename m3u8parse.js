@@ -273,6 +273,53 @@ M3U8Playlist.prototype.getSegment = function(seqNo, independent) {
   return segment;
 };
 
+M3U8Playlist.prototype.rewriteUris = function(mapFn) {
+  const rewriteAttrs = (list, type) => {
+    for (let idx = 0; idx < list.length; idx++) {
+      let item = list[idx];
+      if (item.uri) {
+        item.quotedString('uri', mapFn(item.quotedString('uri'), type, item));
+      }
+    }
+  };
+
+  const rewriteMappedAttrs = (map, type) => {
+    if (map) {
+      let allAttrs = [];
+      for (let entry in map)
+        Array.prototype.push.apply(allAttrs, map[entry]);
+
+      rewriteAttrs(allAttrs, type);
+    }
+  };
+
+  let variants = this.variants;
+  for (let idx = 0; idx < variants.length; idx++) {
+    variants[idx].uri = mapFn(variants[idx].uri, 'variant', variants[idx]);
+  }
+
+  rewriteAttrs(this.iframes, 'iframe');
+  rewriteMappedAttrs(this.groups, 'group');
+  rewriteMappedAttrs(this.data, 'data');
+  rewriteAttrs(this.session_keys, 'session-key');
+  
+  // Update segments
+
+  let segments = this.segments;
+  for (let idx = 0; idx < segments.length; idx++) {
+    const segment = segments[idx];
+    segment.uri = mapFn(segment.uri, 'segment', segment);
+    if (segment.keys) {
+      rewriteAttrs(segment.keys, 'segment-key');
+    }
+    if (segment.map) {
+      rewriteAttrs([segment.map], 'segment-map');
+    }
+  }
+
+  return this;
+};
+
 M3U8Playlist.prototype.toString = function() {
   let m3u8 = '#EXTM3U\n';
 

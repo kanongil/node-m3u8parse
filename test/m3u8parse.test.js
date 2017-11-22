@@ -369,6 +369,36 @@ describe('M3U8Playlist', function() {
     })
   })
 
+  describe('#rewriteUris()', function() {
+    it('should map all variant playlist uris', function() {
+      var mapFn = function(uri, type) {
+        return uri + '?' + type;
+      };
+
+      var index = new m3u8parse.M3U8Playlist(testIndex).rewriteUris(mapFn);
+      expect(index.segments[0].uri).to.equal('http://media.example.com/fileSequence52-A.ts?segment');
+      expect(index.segments[0].keys[0].quotedString('uri')).to.equal('https://priv.example.com/key.php?r=52?segment-key');
+      expect(index.segments[3].uri).to.equal('http://media.example.com/fileSequence53-A.ts?segment');
+      // TODO: test segment-map
+    })
+    it('should map all master playlist uris', function() {
+      var mapFn = function(uri, type) {
+        return uri + '?' + type;
+      };
+
+      var index = new m3u8parse.M3U8Playlist(masterIndex).rewriteUris(mapFn);
+
+      expect(index.variants[0].uri).to.equal('low/video-only.m3u8?variant');
+      expect(index.variants[3].uri).to.equal('main/english-audio.m3u8?variant');
+      expect(index.iframes[0].quotedString('uri')).to.equal('lo/iframes.m3u8?iframe');
+      expect(index.iframes[2].quotedString('uri')).to.equal('hi/iframes.m3u8?iframe');
+      expect(index.groups['aac'][0].quotedString('uri')).to.equal('main/english-audio.m3u8?group');
+      expect(index.groups['aac'][2].quotedString('uri')).to.equal('commentary/audio-only.m3u8?group');
+      expect(index.data['com.example.lyrics'][0].quotedString('uri')).to.equal('lyrics.json?data');
+      expect(index.session_keys[0].quotedString('uri')).to.equal('https://priv.example.com/key.php?r=52?session-key');
+    })
+  })
+
   describe('parsed object', function() {
 
     it('includes session-data', function() {
