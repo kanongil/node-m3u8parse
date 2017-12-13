@@ -397,6 +397,16 @@ describe('M3U8Playlist', function() {
       expect(index.data['com.example.lyrics'][0].quotedString('uri')).to.equal('lyrics.json?data');
       expect(index.session_keys[0].quotedString('uri')).to.equal('https://priv.example.com/key.php?r=52?session-key');
     })
+    it('preserves uris when mapFn returns undefined', function () {
+      var mapFn = function (uri, type) {
+        return;
+      };
+
+      var index = new m3u8parse.M3U8Playlist(testIndex).rewriteUris(mapFn);
+      expect(index.segments[0].uri).to.equal('http://media.example.com/fileSequence52-A.ts');
+      expect(index.segments[0].keys[0].quotedString('uri')).to.equal('https://priv.example.com/key.php?r=52');
+      expect(index.segments[3].uri).to.equal('http://media.example.com/fileSequence53-A.ts');
+    })
   })
 
   describe('parsed object', function() {

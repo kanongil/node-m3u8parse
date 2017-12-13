@@ -278,7 +278,10 @@ M3U8Playlist.prototype.rewriteUris = function(mapFn) {
     for (let idx = 0; idx < list.length; idx++) {
       let item = list[idx];
       if (item.uri) {
-        item.quotedString('uri', mapFn(item.quotedString('uri'), type, item));
+        const newUri = mapFn(item.quotedString('uri'), type, item);
+        if (newUri || newUri === '') {
+          item.quotedString('uri', newUri);
+        }
       }
     }
   };
@@ -295,7 +298,10 @@ M3U8Playlist.prototype.rewriteUris = function(mapFn) {
 
   let variants = this.variants;
   for (let idx = 0; idx < variants.length; idx++) {
-    variants[idx].uri = mapFn(variants[idx].uri, 'variant', variants[idx]);
+    const newUri = mapFn(variants[idx].uri, 'variant', variants[idx]);
+    if (newUri || newUri === '') {
+      variants[idx].uri = newUri;
+    }
   }
 
   rewriteAttrs(this.iframes, 'iframe');
@@ -308,7 +314,10 @@ M3U8Playlist.prototype.rewriteUris = function(mapFn) {
   let segments = this.segments;
   for (let idx = 0; idx < segments.length; idx++) {
     const segment = segments[idx];
-    segment.uri = mapFn(segment.uri, 'segment', segment);
+    const newUri = mapFn(segment.uri, 'segment', segment);
+    if (newUri || newUri === '') {
+      segment.uri = newUri;
+    }
     if (segment.keys) {
       rewriteAttrs(segment.keys, 'segment-key');
     }
