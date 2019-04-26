@@ -13,135 +13,20 @@ try {
 catch (err) {}
 
 
-const ParserError = function (msg, line, line_no, constr) {
+const ParserError = class extends Error {
 
-    Error.captureStackTrace(this, constr || this);
-    this.message = msg || 'Error';
-    this.line = line;
-    this.lineNumber = line_no;
+    constructor(msg, line, line_no, constr) {
+
+        super();
+
+        Error.captureStackTrace(this, constr || this);
+        this.message = msg || 'Error';
+        this.line = line;
+        this.lineNumber = line_no;
+    }
 };
 
-Util.inherits(ParserError, Error);
 ParserError.prototype.name = 'Parser Error';
-
-
-const M3U8Playlist = function (obj) {
-
-    if (!(this instanceof M3U8Playlist)) {
-        return new M3U8Playlist(obj);
-    }
-
-    obj = obj || {};
-
-    this.master = obj.master || false;
-
-    // initialize to default values
-    this.version = obj.version || 1; // V1
-    this.allow_cache = !(obj.allow_cache === false);
-    this.i_frames_only = obj.i_frames_only || false; // V4
-    this.target_duration = obj.target_duration || undefined;
-    this.first_seq_no = obj.first_seq_no || 0;
-    this.type = obj.type; // V3+
-    this.ended = obj.ended || false;
-    this.discontinuity_sequence = obj.discontinuity_sequence || 0; // V6
-    this.start = new AttrList(obj.start); // V6
-    this.independent_segments = obj.independent_segments; // V6
-
-    this.segments = [];
-    if (obj.segments) {
-        this.segments = obj.segments.map((segment) =>  new M3U8Segment(segment));
-    }
-
-    // for master streams
-    this.variants = Clone(obj.variants) || [];
-    this.variants.forEach((variant) => {
-
-        if (variant.info) {
-            variant.info = new AttrList(variant.info);
-        }
-    });
-
-    this.groups = Clone(obj.groups) || {};
-    Object.keys(this.groups).forEach((id) => {
-
-        const list = this.groups[id];
-        for (let i = 0; i < list.length; ++i) {
-            list[i] = new AttrList(list[i]);
-        }
-    });
-
-    this.iframes = Clone(obj.iframes) || []; // V4
-    for (let i = 0; i < this.iframes.length; ++i) {
-        this.iframes[i] = new AttrList(this.iframes[i]);
-    }
-
-    this.data = Clone(obj.data) || {}; // V7
-    Object.keys(this.data).forEach((id) => {
-
-        const list = this.data[id];
-        for (let i = 0; i < list.length; ++i) {
-            list[i] = new AttrList(list[i]);
-        }
-    });
-
-    this.session_keys = Clone(obj.session_keys) || []; // V7
-    for (let i = 0; i < this.session_keys.length; ++i) {
-        this.session_keys[i] = new AttrList(this.session_keys[i]);
-    }
-
-    // custom vendor extensions
-    if (obj.vendor) {
-        this.vendor = Clone(obj.vendor);
-    }
-};
-
-M3U8Playlist.prototype.PlaylistType = {
-    EVENT: 'EVENT',
-    VOD: 'VOD'
-};
-
-M3U8Playlist.prototype.totalDuration = function () {
-
-    return this.segments.reduce((sum, segment) => sum + segment.duration, 0);
-};
-
-M3U8Playlist.prototype.isLive = function () {
-
-    return !(this.ended || this.type === this.PlaylistType.VOD);
-};
-
-M3U8Playlist.prototype.startSeqNo = function (full) {
-
-    if (this.segments.length === 0) {
-        return -1;
-    }
-
-    if (!this.isLive() || full) {
-        return this.first_seq_no;
-    }
-
-    let i; let duration = this.target_duration * 3;
-    for (i = ~~this.segments.length - 1; i > 0; --i) {
-        duration -= this.segments[i].duration;
-        if (duration < 0) {
-            break;
-        }
-    }
-
-    // TODO: validate that correct seqNo is returned
-    return this.first_seq_no + i;
-};
-
-M3U8Playlist.prototype.lastSeqNo = function () {
-
-    return this.first_seq_no + this.segments.length - 1;
-};
-
-// return whether the seqNo is in the index
-M3U8Playlist.prototype.isValidSeqNo = function (seqNo) {
-
-    return (seqNo >= this.first_seq_no) && (seqNo <= this.lastSeqNo());
-};
 
 const lastSegmentProperty = function (index, key, seqNo, incrFn) {
 
@@ -160,439 +45,562 @@ const lastSegmentProperty = function (index, key, seqNo, incrFn) {
     return null;
 };
 
-M3U8Playlist.prototype.dateForSeqNo = function (seqNo) {
+const M3U8Playlist = class {
 
-    let elapsed = 0;
-    const program_time = lastSegmentProperty(this, 'program_time', seqNo, (segment) => {
+    constructor(obj) {
 
-        elapsed += segment.duration;
-        return segment.discontinuity; // abort on discontinuity
-    });
+        obj = obj || {};
 
-    return program_time ? new Date(program_time.getTime() + (elapsed - this.getSegment(seqNo).duration) * 1000) : null;
-};
+        this.master = obj.master || false;
 
-M3U8Playlist.prototype.seqNoForDate = function (date, findNearestAfter) {
+        // initialize to default values
+        this.version = obj.version || 1; // V1
+        this.allow_cache = !(obj.allow_cache === false);
+        this.i_frames_only = obj.i_frames_only || false; // V4
+        this.target_duration = obj.target_duration || undefined;
+        this.first_seq_no = obj.first_seq_no || 0;
+        this.type = obj.type; // V3+
+        this.ended = obj.ended || false;
+        this.discontinuity_sequence = obj.discontinuity_sequence || 0; // V6
+        this.start = new AttrList(obj.start); // V6
+        this.independent_segments = obj.independent_segments; // V6
 
-    if (typeof date === 'boolean') {
-        findNearestAfter = date;
-        date = null;
-    }
-
-    let startTime = date;
-    if (typeof date !== 'number') {
-        startTime = date ? +new Date(date) : Date.now();
-    }
-
-    // if findNearestAfter is true, the first sequence number after the date is returned
-    findNearestAfter = !!findNearestAfter;
-
-    // no assumptions are made about monotonic time
-    const firstValid = { seqNo: -1, delta: null, duration: 0 };
-    let segmentEndTime = -1;
-
-    const segments = this.segments; const count = ~~segments.length;
-    for (let i = 0; i < count; ++i) {
-        const segment = segments[i];
-
-        if (segment.program_time) {
-            segmentEndTime = segment.program_time.getTime();
+        this.segments = [];
+        if (obj.segments) {
+            this.segments = obj.segments.map((segment) =>  new M3U8Segment(segment));
         }
 
-        if (segment.discontinuity) {
-            segmentEndTime = -1;
+        // for master streams
+        this.variants = Clone(obj.variants) || [];
+        this.variants.forEach((variant) => {
+
+            if (variant.info) {
+                variant.info = new AttrList(variant.info);
+            }
+        });
+
+        this.groups = Clone(obj.groups) || {};
+        Object.keys(this.groups).forEach((id) => {
+
+            const list = this.groups[id];
+            for (let i = 0; i < list.length; ++i) {
+                list[i] = new AttrList(list[i]);
+            }
+        });
+
+        this.iframes = Clone(obj.iframes) || []; // V4
+        for (let i = 0; i < this.iframes.length; ++i) {
+            this.iframes[i] = new AttrList(this.iframes[i]);
         }
 
-        const segmentDuration = 1000 * segment.duration;
-        if (segmentEndTime !== -1 && segmentDuration > 0) {
-            segmentEndTime += segmentDuration;
+        this.data = Clone(obj.data) || {}; // V7
+        Object.keys(this.data).forEach((id) => {
 
-            // update firstValid
-            const delta = segmentEndTime - startTime - 1;
-            if (delta >= 0 && (firstValid.delta === null || delta < firstValid.delta || delta < segmentDuration)) {
-                firstValid.seqNo = this.first_seq_no + i;
-                firstValid.delta = delta;
-                firstValid.duration = segmentDuration;
+            const list = this.data[id];
+            for (let i = 0; i < list.length; ++i) {
+                list[i] = new AttrList(list[i]);
+            }
+        });
+
+        this.session_keys = Clone(obj.session_keys) || []; // V7
+        for (let i = 0; i < this.session_keys.length; ++i) {
+            this.session_keys[i] = new AttrList(this.session_keys[i]);
+        }
+
+        // custom vendor extensions
+        if (obj.vendor) {
+            this.vendor = Clone(obj.vendor);
+        }
+    }
+
+    get PlaylistType() {
+
+        return {
+            EVENT: 'EVENT',
+            VOD: 'VOD'
+        };
+    }
+
+    totalDuration() {
+
+        return this.segments.reduce((sum, segment) => sum + segment.duration, 0);
+    }
+
+    isLive() {
+
+        return !(this.ended || this.type === this.PlaylistType.VOD);
+    }
+
+    startSeqNo(full) {
+
+        if (this.segments.length === 0) {
+            return -1;
+        }
+
+        if (!this.isLive() || full) {
+            return this.first_seq_no;
+        }
+
+        let i; let duration = this.target_duration * 3;
+        for (i = ~~this.segments.length - 1; i > 0; --i) {
+            duration -= this.segments[i].duration;
+            if (duration < 0) {
+                break;
             }
         }
+
+        // TODO: validate that correct seqNo is returned
+        return this.first_seq_no + i;
     }
 
-    if (!findNearestAfter && firstValid.delta >= firstValid.duration) {
-        return -1;
+    lastSeqNo() {
+
+        return this.first_seq_no + this.segments.length - 1;
     }
 
-    return firstValid.seqNo;
-};
+    // return whether the seqNo is in the index
+    isValidSeqNo(seqNo) {
 
-M3U8Playlist.prototype.keysForSeqNo = function (seqNo) {
+        return (seqNo >= this.first_seq_no) && (seqNo <= this.lastSeqNo());
+    }
 
-    let segment; const keys = {}; const initialSeqNo = seqNo;
-    while ((segment = this.getSegment(seqNo--)) !== null) {
-        if (!segment.keys) {
-            continue;
+    dateForSeqNo(seqNo) {
+
+        let elapsed = 0;
+        const program_time = lastSegmentProperty(this, 'program_time', seqNo, (segment) => {
+
+            elapsed += segment.duration;
+            return segment.discontinuity; // abort on discontinuity
+        });
+
+        return program_time ? new Date(program_time.getTime() + (elapsed - this.getSegment(seqNo).duration) * 1000) : null;
+    }
+
+    seqNoForDate(date, findNearestAfter) {
+
+        if (typeof date === 'boolean') {
+            findNearestAfter = date;
+            date = null;
         }
 
-        for (let i = 0; i < segment.keys.length; ++i) {
-            const key = segment.keys[i];
-            const keyformat = key.keyformat ? key.enumeratedString('keyformat') : 'identity';
+        let startTime = date;
+        if (typeof date !== 'number') {
+            startTime = date ? +new Date(date) : Date.now();
+        }
 
-            if (!keys[keyformat]) {
-                const keymethod = key.enumeratedString('method');
-                if (keymethod === 'NONE') {
-                    return null;
+        // if findNearestAfter is true, the first sequence number after the date is returned
+        findNearestAfter = !!findNearestAfter;
+
+        // no assumptions are made about monotonic time
+        const firstValid = { seqNo: -1, delta: null, duration: 0 };
+        let segmentEndTime = -1;
+
+        const segments = this.segments; const count = ~~segments.length;
+        for (let i = 0; i < count; ++i) {
+            const segment = segments[i];
+
+            if (segment.program_time) {
+                segmentEndTime = segment.program_time.getTime();
+            }
+
+            if (segment.discontinuity) {
+                segmentEndTime = -1;
+            }
+
+            const segmentDuration = 1000 * segment.duration;
+            if (segmentEndTime !== -1 && segmentDuration > 0) {
+                segmentEndTime += segmentDuration;
+
+                // update firstValid
+                const delta = segmentEndTime - startTime - 1;
+                if (delta >= 0 && (firstValid.delta === null || delta < firstValid.delta || delta < segmentDuration)) {
+                    firstValid.seqNo = this.first_seq_no + i;
+                    firstValid.delta = delta;
+                    firstValid.duration = segmentDuration;
+                }
+            }
+        }
+
+        if (!findNearestAfter && firstValid.delta >= firstValid.duration) {
+            return -1;
+        }
+
+        return firstValid.seqNo;
+    }
+
+    keysForSeqNo(seqNo) {
+
+        let segment; const keys = {}; const initialSeqNo = seqNo;
+        while ((segment = this.getSegment(seqNo--)) !== null) {
+            if (!segment.keys) {
+                continue;
+            }
+
+            for (let i = 0; i < segment.keys.length; ++i) {
+                const key = segment.keys[i];
+                const keyformat = key.keyformat ? key.enumeratedString('keyformat') : 'identity';
+
+                if (!keys[keyformat]) {
+                    const keymethod = key.enumeratedString('method');
+                    if (keymethod === 'NONE') {
+                        return null;
+                    }
+
+                    keys[keyformat] = new AttrList(key);
+
+                    if (this.version < 5) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (keys.identity && !keys.identity.iv) {
+            keys.identity.hexadecimalInteger('iv', initialSeqNo);
+        }
+
+        const result = Object.keys(keys).map((keyformat) => keys[keyformat]);
+
+        return result.length ? result : null;
+    }
+
+    byterangeForSeqNo(seqNo) {
+
+        const seqIndex = seqNo - this.first_seq_no;
+        const seqSegment = this.segments[seqIndex] || null;
+        if (!seqSegment || !seqSegment.byterange) {
+            return null;
+        }
+
+        const length = parseInt(seqSegment.byterange.length, 10);
+        if (isNaN(length)) {
+            return null;
+        }
+
+        let offset = parseInt(seqSegment.byterange.offset, 10);
+        if (isNaN(offset)) {
+            // compute actual value from history
+            offset = 0;
+
+            for (let i = seqIndex - 1; i >= 0; --i) {
+                const segment = this.segments[i];
+                if (segment.uri !== seqSegment.uri) {
+                    continue;
                 }
 
-                keys[keyformat] = new AttrList(key);
+                if (!segment.byterange) {
+                    break;
+                } // consistency error
 
-                if (this.version < 5) {
+                const segmentLength = parseInt(segment.byterange.length, 10);
+                const segmentOffset = parseInt(segment.byterange.offset, 10);
+                if (isNaN(segmentLength)) {
+                    break;
+                } // consistency error
+
+                offset += segmentLength;
+                if (!isNaN(segmentOffset)) {
+                    offset += segmentOffset;
                     break;
                 }
             }
         }
+
+        return { length, offset };
     }
 
-    if (keys.identity && !keys.identity.iv) {
-        keys.identity.hexadecimalInteger('iv', initialSeqNo);
+    mapForSeqNo(seqNo) {
+
+        return lastSegmentProperty(this, 'map', seqNo, (segment) => segment.discontinuity); // abort on discontinuity
     }
 
-    const result = Object.keys(keys).map((keyformat) => keys[keyformat]);
+    getSegment(seqNo, independent) {
 
-    return result.length ? result : null;
-};
-
-M3U8Playlist.prototype.byterangeForSeqNo = function (seqNo) {
-
-    const seqIndex = seqNo - this.first_seq_no;
-    const seqSegment = this.segments[seqIndex] || null;
-    if (!seqSegment || !seqSegment.byterange) {
-        return null;
-    }
-
-    const length = parseInt(seqSegment.byterange.length, 10);
-    if (isNaN(length)) {
-        return null;
-    }
-
-    let offset = parseInt(seqSegment.byterange.offset, 10);
-    if (isNaN(offset)) {
-        // compute actual value from history
-        offset = 0;
-
-        for (let i = seqIndex - 1; i >= 0; --i) {
-            const segment = this.segments[i];
-            if (segment.uri !== seqSegment.uri) {
-                continue;
+        // TODO: should we check for number type and throw if not?
+        const index = seqNo - this.first_seq_no;
+        let segment = this.segments[index] || null;
+        if (independent && segment) {
+            segment = new M3U8Segment(segment);
+            // EXT-X-KEY, EXT-X-MAP, EXT-X-PROGRAM-DATE-TIME, EXT-X-BYTERANGE needs to be individualized
+            segment.program_time = this.dateForSeqNo(seqNo);
+            segment.keys = this.keysForSeqNo(seqNo);
+            if (this.version >= 4) {
+                segment.byterange = this.byterangeForSeqNo(seqNo);
             }
 
-            if (!segment.byterange) {
-                break;
-            } // consistency error
-
-            const segmentLength = parseInt(segment.byterange.length, 10);
-            const segmentOffset = parseInt(segment.byterange.offset, 10);
-            if (isNaN(segmentLength)) {
-                break;
-            } // consistency error
-
-            offset += segmentLength;
-            if (!isNaN(segmentOffset)) {
-                offset += segmentOffset;
-                break;
+            if (this.version >= 5) {
+                segment.map = this.mapForSeqNo(seqNo);
             }
+            // note: 'uri' is not resolved to an absolute url, since it principally opaque
         }
+
+        return segment;
     }
 
-    return {
-        length,
-        offset
-    };
-};
+    rewriteUris(mapFn) {
 
-M3U8Playlist.prototype.mapForSeqNo = function (seqNo) {
+        const rewriteAttrs = (list, type) => {
 
-    return lastSegmentProperty(this, 'map', seqNo, (segment) => segment.discontinuity); // abort on discontinuity
-};
-
-M3U8Playlist.prototype.getSegment = function (seqNo, independent) {
-    // TODO: should we check for number type and throw if not?
-    const index = seqNo - this.first_seq_no;
-    let segment = this.segments[index] || null;
-    if (independent && segment) {
-        segment = new M3U8Segment(segment);
-        // EXT-X-KEY, EXT-X-MAP, EXT-X-PROGRAM-DATE-TIME, EXT-X-BYTERANGE needs to be individualized
-        segment.program_time = this.dateForSeqNo(seqNo);
-        segment.keys = this.keysForSeqNo(seqNo);
-        if (this.version >= 4) {
-            segment.byterange = this.byterangeForSeqNo(seqNo);
-        }
-
-        if (this.version >= 5) {
-            segment.map = this.mapForSeqNo(seqNo);
-        }
-        // note: 'uri' is not resolved to an absolute url, since it principally opaque
-    }
-
-    return segment;
-};
-
-M3U8Playlist.prototype.rewriteUris = function (mapFn) {
-
-    const rewriteAttrs = (list, type) => {
-
-        for (let i = 0; i < list.length; ++i) {
-            const item = list[i];
-            if (item.uri) {
-                const newUri = mapFn(item.quotedString('uri'), type, item);
-                if (newUri || newUri === '') {
-                    item.quotedString('uri', newUri);
+            for (let i = 0; i < list.length; ++i) {
+                const item = list[i];
+                if (item.uri) {
+                    const newUri = mapFn(item.quotedString('uri'), type, item);
+                    if (newUri || newUri === '') {
+                        item.quotedString('uri', newUri);
+                    }
                 }
             }
+        };
+
+        const rewriteMappedAttrs = (map, type) => {
+
+            if (map) {
+                const allAttrs = [];
+                for (const entry in map) {
+                    Array.prototype.push.apply(allAttrs, map[entry]);
+                }
+
+                rewriteAttrs(allAttrs, type);
+            }
+        };
+
+        const variants = this.variants;
+        for (let i = 0; i < variants.length; ++i) {
+            const newUri = mapFn(variants[i].uri, 'variant', variants[i]);
+            if (newUri || newUri === '') {
+                variants[i].uri = newUri;
+            }
         }
-    };
 
-    const rewriteMappedAttrs = (map, type) => {
+        rewriteAttrs(this.iframes, 'iframe');
+        rewriteMappedAttrs(this.groups, 'group');
+        rewriteMappedAttrs(this.data, 'data');
+        rewriteAttrs(this.session_keys, 'session-key');
 
-        if (map) {
-            const allAttrs = [];
-            for (const entry in map) {
-                Array.prototype.push.apply(allAttrs, map[entry]);
+        // Update segments
+
+        const segments = this.segments;
+        for (let i = 0; i < segments.length; ++i) {
+            const segment = segments[i];
+            const newUri = mapFn(segment.uri, 'segment', segment);
+            if (newUri || newUri === '') {
+                segment.uri = newUri;
             }
 
-            rewriteAttrs(allAttrs, type);
-        }
-    };
+            if (segment.keys) {
+                rewriteAttrs(segment.keys, 'segment-key');
+            }
 
-    const variants = this.variants;
-    for (let i = 0; i < variants.length; ++i) {
-        const newUri = mapFn(variants[i].uri, 'variant', variants[i]);
-        if (newUri || newUri === '') {
-            variants[i].uri = newUri;
+            if (segment.map) {
+                rewriteAttrs([segment.map], 'segment-map');
+            }
         }
+
+        return this;
     }
 
-    rewriteAttrs(this.iframes, 'iframe');
-    rewriteMappedAttrs(this.groups, 'group');
-    rewriteMappedAttrs(this.data, 'data');
-    rewriteAttrs(this.session_keys, 'session-key');
+    toString() {
 
-    // Update segments
+        let m3u8 = '#EXTM3U\n';
 
-    const segments = this.segments;
-    for (let i = 0; i < segments.length; ++i) {
-        const segment = segments[i];
-        const newUri = mapFn(segment.uri, 'segment', segment);
-        if (newUri || newUri === '') {
-            segment.uri = newUri;
+        if (this.version > 1) {
+            m3u8 += '#EXT-X-VERSION:' + this.version + '\n';
         }
 
-        if (segment.keys) {
-            rewriteAttrs(segment.keys, 'segment-key');
+        const streamInfAttrs = function (obj, version) {
+
+            const attrs = new AttrList(obj);
+            if (version >= 6) {
+                delete attrs['program-id'];
+            }
+
+            return attrs;
+        };
+
+        if (!this.master) {
+            m3u8 += '#EXT-X-TARGETDURATION:' + this.target_duration + '\n';
+
+            if (this.type) {
+                m3u8 += '#EXT-X-PLAYLIST-TYPE:' + this.type + '\n';
+            }
+
+            if (this.version < 7 && !this.allow_cache) {
+                m3u8 += '#EXT-X-ALLOW-CACHE:NO\n';
+            }
+
+            const firstSeqNo = parseInt(this.first_seq_no, 10) || 0;
+            if (firstSeqNo !== 0) {
+                m3u8 += '#EXT-X-MEDIA-SEQUENCE:' + firstSeqNo + '\n';
+            }
+
+            if (this.type !== this.PlaylistType.VOD && this.type !== this.PlaylistType.EVENT) {
+                const discontinuitySequence = parseInt(this.discontinuity_sequence, 10) || 0;
+                if (discontinuitySequence !== 0) {
+                    m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + discontinuitySequence + '\n';
+                } // soft V6
+            }
+
+            if (this.version >= 4 && this.i_frames_only) {
+                m3u8 += '#EXT-X-I-FRAMES-ONLY\n';
+            }
         }
 
-        if (segment.map) {
-            rewriteAttrs([segment.map], 'segment-map');
-        }
-    }
+        if (this.start && Object.keys(this.start).length) {
+            m3u8 += '#EXT-X-START:' + new AttrList(this.start) + '\n';
+        } // soft V6
 
-    return this;
-};
+        if (this.independent_segments) {
+            m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n';
+        } // soft V6
 
-M3U8Playlist.prototype.toString = function () {
+        if (this.master) {
+            this.session_keys.forEach((key) => {
 
-    let m3u8 = '#EXTM3U\n';
+                m3u8 += '#EXT-X-SESSION-KEY:' + new AttrList(key) + '\n';
+            });
 
-    if (this.version > 1) {
-        m3u8 += '#EXT-X-VERSION:' + this.version + '\n';
-    }
+            // add non-standard marlin entry
+            if (this.keys && Util.isArray(this.keys)) {
+                this.keys.forEach((key) => {
 
-    const streamInfAttrs = function (obj, version) {
+                    m3u8 += '#EXT-X-KEY:' + new AttrList(key) + '\n';
+                });
+            }
 
-        const attrs = new AttrList(obj);
-        if (version >= 6) {
-            delete attrs['program-id'];
-        }
+            for (const dataId in this.data) {  // soft V7
+                for (const data of this.data[dataId]) {
+                    m3u8 += '#EXT-X-SESSION-DATA:' + new AttrList(data) + '\n';
+                }
+            }
 
-        return attrs;
-    };
+            for (const groupId in this.groups) {
+                for (const group of this.groups[groupId]) {
+                    m3u8 += '#EXT-X-MEDIA:' + new AttrList(group) + '\n';
+                }
+            }
 
-    if (!this.master) {
-        m3u8 += '#EXT-X-TARGETDURATION:' + this.target_duration + '\n';
+            this.iframes.forEach((iframe) => {
 
-        if (this.type) {
-            m3u8 += '#EXT-X-PLAYLIST-TYPE:' + this.type + '\n';
-        }
+                m3u8 += '#EXT-X-I-FRAME-STREAM-INF:' + streamInfAttrs(iframe) + '\n';
+            });
 
-        if (this.version < 7 && !this.allow_cache) {
-            m3u8 += '#EXT-X-ALLOW-CACHE:NO\n';
-        }
+            this.variants.forEach((variant) => {
 
-        const firstSeqNo = parseInt(this.first_seq_no, 10) || 0;
-        if (firstSeqNo !== 0) {
-            m3u8 += '#EXT-X-MEDIA-SEQUENCE:' + firstSeqNo + '\n';
-        }
-
-        if (this.type !== this.PlaylistType.VOD && this.type !== this.PlaylistType.EVENT) {
-            const discontinuitySequence = parseInt(this.discontinuity_sequence, 10) || 0;
-            if (discontinuitySequence !== 0) {
-                m3u8 += '#EXT-X-DISCONTINUITY-SEQUENCE:' + discontinuitySequence + '\n';
-            } // soft V6
-        }
-
-        if (this.version >= 4 && this.i_frames_only) {
-            m3u8 += '#EXT-X-I-FRAMES-ONLY\n';
-        }
-    }
-
-    if (this.start && Object.keys(this.start).length) {
-        m3u8 += '#EXT-X-START:' + new AttrList(this.start) + '\n';
-    } // soft V6
-
-    if (this.independent_segments) {
-        m3u8 += '#EXT-X-INDEPENDENT-SEGMENTS\n';
-    } // soft V6
-
-    if (this.master) {
-        this.session_keys.forEach((key) => {
-
-            m3u8 += '#EXT-X-SESSION-KEY:' + new AttrList(key) + '\n';
-        });
-
-        // add non-standard marlin entry
-        if (this.keys && Util.isArray(this.keys)) {
-            this.keys.forEach((key) => {
-
-                m3u8 += '#EXT-X-KEY:' + new AttrList(key) + '\n';
+                m3u8 += '#EXT-X-STREAM-INF:' + streamInfAttrs(variant.info) + '\n';
+                m3u8 += variant.uri + '\n';
             });
         }
 
-        for (const dataId in this.data) {  // soft V7
-            for (const data of this.data[dataId]) {
-                m3u8 += '#EXT-X-SESSION-DATA:' + new AttrList(data) + '\n';
+        // add vendor extensions
+        for (const ext in (this.vendor || {})) {
+            const value = this.vendor[ext];
+            m3u8 += ext;
+            if (value !== null && typeof value !== 'undefined') {
+                m3u8 += ':' + value;
             }
+
+            m3u8 += '\n';
         }
 
-        for (const groupId in this.groups) {
-            for (const group of this.groups[groupId]) {
-                m3u8 += '#EXT-X-MEDIA:' + new AttrList(group) + '\n';
+        this.segments.forEach((segment) => {
+
+            m3u8 += segment.toString();
+        });
+
+        if (this.ended && !this.master) {
+            m3u8 += '#EXT-X-ENDLIST\n';
+        }
+
+        return m3u8;
+    }
+};
+
+
+const M3U8Segment = class {
+
+    constructor(uri, meta, version) {
+
+        if (uri.uri) {
+            meta = uri;
+            uri = meta.uri;
+            version = 10000;
+        }
+
+        this.duration = meta.duration;
+        this.title = meta.title;
+        this.uri = uri;
+        this.discontinuity = meta.discontinuity || false;
+
+        // optional
+        if (meta.program_time) {
+            this.program_time = new Date(meta.program_time);
+        }
+
+        if (meta.keys) {
+            this.keys = meta.keys.map((key) => new AttrList(key));
+        }
+
+        if (version >= 4 && meta.byterange) {
+            this.byterange = Clone(meta.byterange);
+        }
+
+        if (version >= 5 && meta.map) {
+            this.map = new AttrList(meta.map);
+        }
+
+        // custom vendor extensions
+        if (meta.vendor) {
+            this.vendor = Clone(meta.vendor);
+        }
+    }
+
+    toString() {
+
+        let res = '';
+        if (this.discontinuity) {
+            res += '#EXT-X-DISCONTINUITY\n';
+        }
+
+        if (this.program_time) {
+            const program_time = this.program_time.toISOString ? this.program_time.toISOString() : this.program_time;
+            res += '#EXT-X-PROGRAM-DATE-TIME:' + program_time + '\n';
+        }
+
+        if (this.keys) {
+            this.keys.forEach((key) => {
+
+                res += '#EXT-X-KEY:' + new AttrList(key) + '\n';
+            });
+        }
+
+        if (this.map) {
+            res += '#EXT-X-MAP:' + new AttrList(this.map) + '\n';
+        }
+
+        if (this.byterange && (this.byterange.length || this.byterange.length === 0)) {
+            let range = '' + this.byterange.length;
+            if (this.byterange.offset || this.byterange.offset === 0) {
+                range += '@' + this.byterange.offset;
             }
+
+            res += '#EXT-X-BYTERANGE:' + range + '\n';
         }
 
-        this.iframes.forEach((iframe) => {
+        // add vendor extensions
+        for (const ext in (this.vendor || {})) {
+            const value = this.vendor[ext];
+            res += ext;
+            if (value !== null && typeof value !== 'undefined') {
+                res += ':' + value;
+            }
 
-            m3u8 += '#EXT-X-I-FRAME-STREAM-INF:' + streamInfAttrs(iframe) + '\n';
-        });
-
-        this.variants.forEach((variant) => {
-
-            m3u8 += '#EXT-X-STREAM-INF:' + streamInfAttrs(variant.info) + '\n';
-            m3u8 += variant.uri + '\n';
-        });
-    }
-
-    // add vendor extensions
-    for (const ext in (this.vendor || {})) {
-        const value = this.vendor[ext];
-        m3u8 += ext;
-        if (value !== null && typeof value !== 'undefined') {
-            m3u8 += ':' + value;
+            res += '\n';
         }
 
-        m3u8 += '\n';
-    }
-
-    this.segments.forEach((segment) => {
-
-        m3u8 += segment.toString();
-    });
-
-    if (this.ended && !this.master) {
-        m3u8 += '#EXT-X-ENDLIST\n';
-    }
-
-    return m3u8;
-};
-
-const M3U8Segment = function (uri, meta, version) {
-
-    if (uri.uri) {
-        meta = uri;
-        uri = meta.uri;
-        version = 10000;
-    }
-
-    this.duration = meta.duration;
-    this.title = meta.title;
-    this.uri = uri;
-    this.discontinuity = meta.discontinuity || false;
-
-    // optional
-    if (meta.program_time) {
-        this.program_time = new Date(meta.program_time);
-    }
-
-    if (meta.keys) {
-        this.keys = meta.keys.map((key) => new AttrList(key));
-    }
-
-    if (version >= 4 && meta.byterange) {
-        this.byterange = Clone(meta.byterange);
-    }
-
-    if (version >= 5 && meta.map) {
-        this.map = new AttrList(meta.map);
-    }
-
-    // custom vendor extensions
-    if (meta.vendor) {
-        this.vendor = Clone(meta.vendor);
+        return res + '#EXTINF:' + parseFloat(this.duration.toFixed(3)) + ',' + this.title + '\n' + this.uri + '\n';
     }
 };
 
-M3U8Segment.prototype.toString = function () {
-
-    let res = '';
-    if (this.discontinuity) {
-        res += '#EXT-X-DISCONTINUITY\n';
-    }
-
-    if (this.program_time) {
-        const program_time = this.program_time.toISOString ? this.program_time.toISOString() : this.program_time;
-        res += '#EXT-X-PROGRAM-DATE-TIME:' + program_time + '\n';
-    }
-
-    if (this.keys) {
-        this.keys.forEach((key) => {
-
-            res += '#EXT-X-KEY:' + AttrList(key) + '\n';
-        });
-    }
-
-    if (this.map) {
-        res += '#EXT-X-MAP:' + AttrList(this.map) + '\n';
-    }
-
-    if (this.byterange && (this.byterange.length || this.byterange.length === 0)) {
-        let range = '' + this.byterange.length;
-        if (this.byterange.offset || this.byterange.offset === 0) {
-            range += '@' + this.byterange.offset;
-        }
-
-        res += '#EXT-X-BYTERANGE:' + range + '\n';
-    }
-
-    // add vendor extensions
-    for (const ext in (this.vendor || {})) {
-        const value = this.vendor[ext];
-        res += ext;
-        if (value !== null && typeof value !== 'undefined') {
-            res += ':' + value;
-        }
-
-        res += '\n';
-    }
-
-    return res + '#EXTINF:' + parseFloat(this.duration.toFixed(3)) + ',' + this.title + '\n' + this.uri + '\n';
-};
 
 const M3U8Parse = function (stream, options, cb) {
 

@@ -28,11 +28,6 @@ describe('AttrList', () => {
         expect(Object.keys(list)).to.have.length(1);
     });
 
-    it('constructor() auto instantiates', () => {
-
-        expect(AttrList()).to.be.instanceOf(AttrList);
-    });
-
     it('toString() has valid output', () => {
 
         const list = new AttrList('INT=42,HEX=0x42,FLOAT=0.42,STRING="hi",ENUM=OK,RES=4x2');

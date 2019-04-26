@@ -128,11 +128,6 @@ describe('M3U8Playlist', () => {
 
     describe('constructor', () => {
 
-        it('should auto instantiate', () => {
-
-            expect(M3u8Parse.M3U8Playlist()).to.be.an.instanceof(M3u8Parse.M3U8Playlist);
-        });
-
         it('should clone passed object', () => {
 
             expect(testIndex).to.equal(new M3u8Parse.M3U8Playlist(testIndex));
@@ -508,7 +503,7 @@ describe('M3U8Playlist', () => {
 
         it('should handle vendor extensions', () => {
 
-            const index = M3u8Parse.M3U8Playlist();
+            const index = new M3u8Parse.M3U8Playlist();
 
             index.master = true;
             index.vendor = {
@@ -519,7 +514,7 @@ describe('M3U8Playlist', () => {
 
         it('should handle vendor segment-extensions', () => {
 
-            const index = M3u8Parse.M3U8Playlist();
+            const index = new M3u8Parse.M3U8Playlist();
 
             index.target_duration = 10;
             index.segments = [new M3u8Parse.M3U8Segment({

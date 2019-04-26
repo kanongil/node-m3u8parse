@@ -25,42 +25,21 @@ const ParseAttrList = function (input) {
     return attrs;
 };
 
-const StringifyAttrList = function (attrs) {
+const AttrList = class {
 
-    let res = '';
+    constructor(attrs) {
 
-    for (const key in attrs) {
-        const value = attrs[key];
-        if (value !== undefined && value !== null) {
-            // TODO: sanitize attr values?
-            const comma = (res.length !== 0) ? ',' : '';
-            res += `${comma}${key.toUpperCase()}=${value}`;
+        if (typeof attrs === 'string') {
+            attrs = ParseAttrList(attrs);
+        }
+
+        for (const attr in attrs) {
+            const value =  attrs[attr] || '';
+            this[attr] = value.toString();
         }
     }
 
-    return res;
-};
-
-const AttrList = function (attrs) {
-
-    if (!(this instanceof AttrList)) {
-        return new AttrList(attrs);
-    }
-
-    if (typeof attrs === 'string') {
-        attrs = ParseAttrList(attrs);
-    }
-
-    for (const attr in attrs) {
-        const value =  attrs[attr] || '';
-        this[attr] = value.toString();
-    }
-};
-
-// no validation is performed on these helpers and they never fail on invalid input
-Object.defineProperties(AttrList.prototype, {
-
-    decimalInteger: { value(attrName, value) {
+    decimalInteger(attrName, value) {
 
         const name = attrName.toLowerCase();
         if (arguments.length > 1) {
@@ -85,9 +64,9 @@ Object.defineProperties(AttrList.prototype, {
         catch (e) {
             return Buffer.alloc(0);
         }
-    } },
+    }
 
-    hexadecimalInteger: { value(attrName, value) {
+    hexadecimalInteger(attrName, value) {
 
         const name = attrName.toLowerCase();
         if (arguments.length > 1) {
@@ -108,9 +87,9 @@ Object.defineProperties(AttrList.prototype, {
         let stringValue = (this[name] || '0x').slice(2);
         stringValue = ((stringValue.length & 1) ? '0' : '') + stringValue;
         return Buffer.from(stringValue, 'hex');
-    } },
+    }
 
-    decimalIntegerAsNumber: { value(attrName, value) {
+    decimalIntegerAsNumber(attrName, value) {
 
         const name = attrName.toLowerCase();
         if (arguments.length > 1) {
@@ -123,9 +102,9 @@ Object.defineProperties(AttrList.prototype, {
         }
 
         return intValue;
-    } },
+    }
 
-    hexadecimalIntegerAsNumber: { value(attrName, value) {
+    hexadecimalIntegerAsNumber(attrName, value) {
 
         const name = attrName.toLowerCase();
         if (arguments.length > 1) {
@@ -138,19 +117,9 @@ Object.defineProperties(AttrList.prototype, {
         }
 
         return intValue;
-    } },
+    }
 
-    decimalFloatingPoint: { value(attrName, value) {
-
-        const name = attrName.toLowerCase();
-        if (arguments.length > 1) {
-            this[name] = '' + value;
-        }
-
-        return parseFloat(this[name]);
-    } },
-
-    signedDecimalFloatingPoint: { value(attrName, value) {
+    decimalFloatingPoint(attrName, value) {
 
         const name = attrName.toLowerCase();
         if (arguments.length > 1) {
@@ -158,9 +127,19 @@ Object.defineProperties(AttrList.prototype, {
         }
 
         return parseFloat(this[name]);
-    } },
+    }
 
-    quotedString: { value(attrName, value) {
+    signedDecimalFloatingPoint(attrName, value) {
+
+        const name = attrName.toLowerCase();
+        if (arguments.length > 1) {
+            this[name] = '' + value;
+        }
+
+        return parseFloat(this[name]);
+    }
+
+    quotedString(attrName, value) {
 
         const name = attrName.toLowerCase();
         if (arguments.length > 1) {
@@ -169,9 +148,9 @@ Object.defineProperties(AttrList.prototype, {
 
         const val = this[name];
         return val ? val.slice(1, -1) : undefined;
-    } },
+    }
 
-    enumeratedString: { value(attrName, value) {
+    enumeratedString(attrName, value) {
 
         const name = attrName.toLowerCase();
         if (arguments.length > 1) {
@@ -179,9 +158,9 @@ Object.defineProperties(AttrList.prototype, {
         }
 
         return this[name];
-    } },
+    }
 
-    decimalResolution: { value(attrName, value) {
+    decimalResolution(attrName, value) {
 
         const name = attrName.toLowerCase();
         if (arguments.length > 1) {
@@ -195,14 +174,24 @@ Object.defineProperties(AttrList.prototype, {
         }
 
         return { width: parseInt(res[1], 10), height: parseInt(res[2], 10) };
-    } }
-});
-
-Object.defineProperty(AttrList.prototype, 'toString', {
-    value() {
-
-        return StringifyAttrList(this);
     }
-});
+
+    toString() {
+
+        let res = '';
+
+        for (const key in this) {
+            const value = this[key];
+            if (value !== undefined && value !== null) {
+                // TODO: sanitize attr values?
+                const comma = (res.length !== 0) ? ',' : '';
+                res += `${comma}${key.toUpperCase()}=${value}`;
+            }
+        }
+
+        return res;
+    }
+};
+
 
 module.exports = AttrList;
