@@ -427,9 +427,9 @@ describe('M3U8Playlist', () => {
             expect(index.variants[3].uri).to.equal('main/english-audio.m3u8?variant');
             expect(index.iframes[0].quotedString('uri')).to.equal('lo/iframes.m3u8?iframe');
             expect(index.iframes[2].quotedString('uri')).to.equal('hi/iframes.m3u8?iframe');
-            expect(index.groups.aac[0].quotedString('uri')).to.equal('main/english-audio.m3u8?group');
-            expect(index.groups.aac[2].quotedString('uri')).to.equal('commentary/audio-only.m3u8?group');
-            expect(index.data['com.example.lyrics'][0].quotedString('uri')).to.equal('lyrics.json?data');
+            expect(index.groups.get('aac')[0].quotedString('uri')).to.equal('main/english-audio.m3u8?group');
+            expect(index.groups.get('aac')[2].quotedString('uri')).to.equal('commentary/audio-only.m3u8?group');
+            expect(index.data.get('com.example.lyrics')[0].quotedString('uri')).to.equal('lyrics.json?data');
             expect(index.session_keys[0].quotedString('uri')).to.equal('https://priv.example.com/key.php?r=52?session-key');
         });
 
@@ -451,9 +451,9 @@ describe('M3U8Playlist', () => {
 
         it('includes session-data', () => {
 
-            expect(masterIndex.data['com.example.lyrics'][0].quotedString('uri')).to.equal('lyrics.json');
-            expect(masterIndex.data['com.example.title'][0].quotedString('value')).to.equal('This is an example');
-            expect(masterIndex.data['com.example.title'][1].quotedString('value')).to.equal('Este es un ejemplo');
+            expect(masterIndex.data.get('com.example.lyrics')[0].quotedString('uri')).to.equal('lyrics.json');
+            expect(masterIndex.data.get('com.example.title')[0].quotedString('value')).to.equal('This is an example');
+            expect(masterIndex.data.get('com.example.title')[1].quotedString('value')).to.equal('Este es un ejemplo');
         });
     });
 

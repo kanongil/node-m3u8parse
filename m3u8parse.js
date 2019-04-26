@@ -79,28 +79,24 @@ const M3U8Playlist = class {
             }
         });
 
-        this.groups = Clone(obj.groups) || {};
-        Object.keys(this.groups).forEach((id) => {
-
-            const list = this.groups[id];
-            for (let i = 0; i < list.length; ++i) {
-                list[i] = new AttrList(list[i]);
+        this.groups = new Map();
+        if (obj.groups) {
+            for (const [groupId, list] of obj.groups) {
+                this.groups.set(groupId, list.map((attrs) => new AttrList(attrs)));
             }
-        });
+        }
 
         this.iframes = Clone(obj.iframes) || []; // V4
         for (let i = 0; i < this.iframes.length; ++i) {
             this.iframes[i] = new AttrList(this.iframes[i]);
         }
 
-        this.data = Clone(obj.data) || {}; // V7
-        Object.keys(this.data).forEach((id) => {
-
-            const list = this.data[id];
-            for (let i = 0; i < list.length; ++i) {
-                list[i] = new AttrList(list[i]);
+        this.data = new Map(); // V7
+        if (obj.data) {
+            for (const [groupId, list] of obj.data) {
+                this.data.set(groupId, list.map((attrs) => new AttrList(attrs)));
             }
-        });
+        }
 
         this.session_keys = Clone(obj.session_keys) || []; // V7
         for (let i = 0; i < this.session_keys.length; ++i) {
@@ -341,8 +337,7 @@ const M3U8Playlist = class {
 
         const rewriteAttrs = (list, type) => {
 
-            for (let i = 0; i < list.length; ++i) {
-                const item = list[i];
+            for (const item of list) {
                 if (item.uri) {
                     const newUri = mapFn(item.quotedString('uri'), type, item);
                     if (newUri || newUri === '') {
@@ -356,8 +351,8 @@ const M3U8Playlist = class {
 
             if (map) {
                 const allAttrs = [];
-                for (const entry in map) {
-                    Array.prototype.push.apply(allAttrs, map[entry]);
+                for (const val of map.values()) {
+                    Array.prototype.push.apply(allAttrs, val);
                 }
 
                 rewriteAttrs(allAttrs, type);
@@ -467,14 +462,14 @@ const M3U8Playlist = class {
                 });
             }
 
-            for (const dataId in this.data) {  // soft V7
-                for (const data of this.data[dataId]) {
+            for (const list of this.data.values()) {  // soft V7
+                for (const data of list) {
                     m3u8 += '#EXT-X-SESSION-DATA:' + new AttrList(data) + '\n';
                 }
             }
 
-            for (const groupId in this.groups) {
-                for (const group of this.groups[groupId]) {
+            for (const list of this.groups.values()) {
+                for (const group of list) {
                     m3u8 += '#EXT-X-MEDIA:' + new AttrList(group) + '\n';
                 }
             }
@@ -803,14 +798,16 @@ const M3U8Parse = function (stream, options, cb) {
             const attrs = new AttrList(arg);
             const id = attrs.quotedString('group-id') || '#';
 
-            if (!(id in m3u8.groups)) {
-                m3u8.groups[id] = [];
+            let list = m3u8.groups.get(id);
+            if (!list) {
+                list = [];
+                m3u8.groups.set(id, list);
                 if (id !== '#') {
-                    m3u8.groups[id].type = attrs.type;
+                    list.type = attrs.type;
                 }
             }
 
-            m3u8.groups[id].push(attrs);
+            list.push(attrs);
         },
         '#EXT-X-I-FRAME-STREAM-INF': (arg) => {
 
@@ -822,11 +819,13 @@ const M3U8Parse = function (stream, options, cb) {
             const id = attrs.quotedString('data-id');
 
             if (id) {
-                if (!(id in m3u8.data)) {
-                    m3u8.data[id] = [];
+                let list = m3u8.data.get(id);
+                if (!list) {
+                    list = [];
+                    m3u8.data.set(id, list);
                 }
 
-                m3u8.data[id].push(attrs);
+                list.push(attrs);
             }
         },
         '#EXT-X-SESSION-KEY': (arg) => {
