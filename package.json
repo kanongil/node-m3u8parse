@@ -5,9 +5,7 @@
   "main": "m3u8parse.js",
   "scripts": {
     "test": "lab -t 90 -L",
-    "test-cov-html": "lab -a @hapi/code -r html -o coverage.html",
-    "coverage": "istanbul cover _mocha -- --ui bdd -R spec -t 1000",
-    "coveralls": "istanbul cover _mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | coveralls"
+    "test-cov-html": "lab -a @hapi/code -r html -o coverage.html"
   },
   "keywords": [
     "hls",
