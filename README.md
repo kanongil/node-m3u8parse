@@ -5,7 +5,6 @@ Structural parsing of [Apple HTTP Live Streaming](http://tools.ietf.org/html/dra
 This module is tested and is used in production systems.
 
 [![Build Status](https://travis-ci.org/kanongil/node-m3u8parse.svg?branch=master)](https://travis-ci.org/kanongil/node-m3u8parse)
-[![Coverage Status](https://coveralls.io/repos/kanongil/node-m3u8parse/badge.svg?branch=master&service=github)](https://coveralls.io/github/kanongil/node-m3u8parse?branch=master)
 
 ## TODO
 
@@ -13,6 +12,7 @@ This module is tested and is used in production systems.
  * `String`/`Buffer` input.
 
 # License
+
 (BSD 2-Clause License)
 
 Copyright (c) 2013-2016, Gil Pedersen &lt;gpdev@gpost.dk&gt;  
