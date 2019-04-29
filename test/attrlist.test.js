@@ -3,7 +3,7 @@
 const Code = require('@hapi/code');
 const Lab = require('@hapi/lab');
 
-const AttrList = require('../attrlist');
+const { AttrList } = require('..');
 
 /* globals BigInt */
 
