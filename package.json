@@ -16,11 +16,10 @@
   "author": "Gil Pedersen <gpdev@gpost.dk>",
   "license": "BSD-2-Clause",
   "engines": {
-    "node": ">=8.9.0"
+    "node": ">=10.4.0"
   },
   "dependencies": {
     "clone": "^2.1.2",
-    "cuint": "^0.2.0",
     "split": "^1.0.0"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 'use strict';
 
-const UINT64 = require('cuint/lib/uint64');
+/* globals BigInt */
 
 let debug = function () {};
 try {
@@ -8,7 +8,6 @@ try {
 }
 catch (err) {}
 
-const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || 9007199254740991;
 
 // AttrList's are currently handled without any implicit knowledge of key/type mapping
 const ParseAttrList = function (input) {
@@ -45,25 +44,31 @@ const AttrList = class {
         if (arguments.length > 1) {
             if (Buffer.isBuffer(value)) {
                 if (value.length) {
-                    this[name] = new UINT64(value.toString('hex'), 16).toString(10);
+                    this[name] = BigInt(`0x${value.toString('hex')}`).toString(10);
                 }
                 else {
                     this[name] = '0';
                 }
             }
             else {
-                this[name] = '' + Math.floor(value);
+                this[name] = BigInt(value).toString(10);
             }
         }
 
-        try {
-            let stringValue = new UINT64(this[name] || '0').toString(16);
-            stringValue = ((stringValue.length & 1) ? '0' : '') + stringValue;
-            return Buffer.from(stringValue, 'hex');
+        if (!this[name]) {
+            return BigInt(0);
         }
-        catch (e) {
-            return Buffer.alloc(0);
+
+        const stringValue = this[name].trim();
+        const intValue = BigInt(stringValue);
+
+        if (stringValue.length >= 2 && stringValue[0] === '0') {
+            if (stringValue[1] < '0' || stringValue[1] > '9') {
+                throw new SyntaxError('Representation is not decimal integer compatible');
+            }
         }
+
+        return intValue;
     }
 
     hexadecimalInteger(attrName, value) {
@@ -84,9 +89,11 @@ const AttrList = class {
             }
         }
 
-        let stringValue = (this[name] || '0x').slice(2);
-        stringValue = ((stringValue.length & 1) ? '0' : '') + stringValue;
-        return Buffer.from(stringValue, 'hex');
+        if (!this[name].startsWith('0x')) {
+            return Number.NaN;
+        }
+
+        return BigInt(this[name] || 0);
     }
 
     decimalIntegerAsNumber(attrName, value) {
@@ -97,7 +104,7 @@ const AttrList = class {
         }
 
         const intValue = parseInt(this[name], 10);
-        if (intValue > MAX_SAFE_INTEGER) {
+        if (intValue > Number.MAX_SAFE_INTEGER) {
             return Number.POSITIVE_INFINITY;
         }
 
@@ -112,7 +119,7 @@ const AttrList = class {
         }
 
         const intValue = parseInt(this[name], 16);
-        if (intValue > MAX_SAFE_INTEGER) {
+        if (intValue > Number.MAX_SAFE_INTEGER) {
             return Number.POSITIVE_INFINITY;
         }
 

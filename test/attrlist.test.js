@@ -5,6 +5,8 @@ const Lab = require('@hapi/lab');
 
 const AttrList = require('../attrlist');
 
+/* globals BigInt */
+
 // Test shortcuts
 
 const { describe, it } = exports.lab = Lab.script();
@@ -152,17 +154,17 @@ describe('AttrList', () => {
         it('handles decimalInteger conversions', () => {
 
             const list = new AttrList('INT1=1234567890123456789,INT2=123,INT3=0');
-            expect(list.decimalInteger('INT1')).to.equal(Buffer.from([0x11,0x22,0x10,0xF4,0x7D,0xE9,0x81,0x15]));
-            expect(list.decimalInteger('INT2')).to.equal(Buffer.from([0x7b]));
-            expect(list.decimalInteger('INT3')).to.equal(Buffer.from([0x0]));
+            expect(list.decimalInteger('INT1')).to.equal(BigInt('1234567890123456789'));
+            expect(list.decimalInteger('INT2')).to.equal(BigInt(123));
+            expect(list.decimalInteger('INT3')).to.equal(BigInt(0));
         });
 
         it('handles hexadecimalInteger conversions', () => {
 
             const list = new AttrList('HEX1=0x0123456789abcdef0123456789abcdef,HEX2=0x123,HEX3=0x0');
-            expect(list.hexadecimalInteger('HEX1')).to.equal(Buffer.from([0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef,0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef]));
-            expect(list.hexadecimalInteger('HEX2')).to.equal(Buffer.from([0x01,0x23]));
-            expect(list.hexadecimalInteger('HEX3')).to.equal(Buffer.from([0x0]));
+            expect(list.hexadecimalInteger('HEX1')).to.equal(BigInt('0x0123456789abcdef0123456789abcdef'));
+            expect(list.hexadecimalInteger('HEX2')).to.equal(BigInt(0x123));
+            expect(list.hexadecimalInteger('HEX3')).to.equal(BigInt(0));
         });
 
         it('returns infinity on large number conversions', () => {
