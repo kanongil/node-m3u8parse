@@ -82,14 +82,15 @@ exports = module.exports = function (input, options = {}, cb) {
 
     const ParseExt = function (cmd, arg) {
 
-        // parse vendor extensions
+        // Parse vendor extensions
+
         if (cmd in extensions) {
             const extObj = options.extensions[cmd] ? meta : m3u8;
             if (!extObj.vendor) {
-                extObj.vendor = {};
+                extObj.vendor = new Map();
             }
 
-            extObj.vendor[cmd] = arg;
+            extObj.vendor.set(cmd, arg);
             return true;
         }
 
@@ -793,15 +794,19 @@ exports.M3U8Playlist = class {
             });
         }
 
-        // add vendor extensions
-        for (const ext in (this.vendor || {})) {
-            const value = this.vendor[ext];
-            m3u8 += ext;
-            if (value !== null && typeof value !== 'undefined') {
-                m3u8 += ':' + value;
-            }
+        if (this.vendor) {
 
-            m3u8 += '\n';
+            // Add vendor extensions
+
+            for (const [ext, value] of this.vendor) {
+                m3u8 += ext;
+
+                if (value || value === '') {
+                    m3u8 += ':' + value;
+                }
+
+                m3u8 += '\n';
+            }
         }
 
         this.segments.forEach((segment) => {
@@ -888,15 +893,19 @@ exports.M3U8Segment = class {
             res += '#EXT-X-BYTERANGE:' + range + '\n';
         }
 
-        // add vendor extensions
-        for (const ext in (this.vendor || {})) {
-            const value = this.vendor[ext];
-            res += ext;
-            if (value !== null && typeof value !== 'undefined') {
-                res += ':' + value;
-            }
+        if (this.vendor) {
 
-            res += '\n';
+            // Add vendor extensions
+
+            for (const [ext, value] of this.vendor) {
+                res += ext;
+
+                if (value || value === '') {
+                    res += ':' + value;
+                }
+
+                res += '\n';
+            }
         }
 
         return res + '#EXTINF:' + parseFloat(this.duration.toFixed(3)) + ',' + this.title + '\n' + this.uri + '\n';

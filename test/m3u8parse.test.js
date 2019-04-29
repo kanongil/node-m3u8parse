@@ -127,12 +127,12 @@ describe('M3U8Parse', () => {
         const index = await M3u8Parse(stream, { extensions: { '#EXT-X-UNKNOWN-EXTENSION': false, '#EXT-Y-META-EXTENSION': true } });
         expect(index).to.exist();
 
-        expect(index.vendor).to.equal({ '#EXT-X-UNKNOWN-EXTENSION': null });
-        expect(index.segments[2].vendor).to.equal({ '#EXT-Y-META-EXTENSION': 'w00t' });
+        expect(index.vendor).to.equal(new Map([['#EXT-X-UNKNOWN-EXTENSION', null]]));
+        expect(index.segments[2].vendor).to.equal(new Map([['#EXT-Y-META-EXTENSION', 'w00t']]));
 
         const index2 = new M3u8Parse.M3U8Playlist(index);
-        expect(index2.vendor).to.equal({ '#EXT-X-UNKNOWN-EXTENSION': null });
-        expect(index2.segments[2].vendor).to.equal({ '#EXT-Y-META-EXTENSION': 'w00t' });
+        expect(index2.vendor).to.equal(new Map([['#EXT-X-UNKNOWN-EXTENSION', null]]));
+        expect(index2.segments[2].vendor).to.equal(new Map([['#EXT-Y-META-EXTENSION', 'w00t']]));
     });
 
     it('should fail on invalid files', async () => {
@@ -557,10 +557,11 @@ describe('M3U8Playlist', () => {
             const index = new M3u8Parse.M3U8Playlist();
 
             index.master = true;
-            index.vendor = {
-                '#EXT-MY-TEST': 'yeah!'
-            };
-            expect(index.toString()).to.equal('#EXTM3U\n#EXT-MY-TEST:yeah!\n');
+            index.vendor = new Map([
+                ['#EXT-MY-TEST', 'yeah!'],
+                ['#EXT-MY-SIMPLE', false]
+            ]);
+            expect(index.toString()).to.equal('#EXTM3U\n#EXT-MY-TEST:yeah!\n#EXT-MY-SIMPLE\n');
         });
 
         it('should handle vendor segment-extensions', () => {
@@ -572,10 +573,10 @@ describe('M3U8Playlist', () => {
                 uri: 'url',
                 duration: 10,
                 title: '',
-                vendor: { '#EXT-MY-TEST': 'yeah!' }
+                vendor: new Map([['#EXT-MY-TEST', 'yeah!'], ['#EXT-MY-SIMPLE', false]])
             })];
             index.ended = true;
-            expect(index.toString()).to.equal('#EXTM3U\n#EXT-X-TARGETDURATION:10\n#EXT-MY-TEST:yeah!\n#EXTINF:10,\nurl\n#EXT-X-ENDLIST\n');
+            expect(index.toString()).to.equal('#EXTM3U\n#EXT-X-TARGETDURATION:10\n#EXT-MY-TEST:yeah!\n#EXT-MY-SIMPLE\n#EXTINF:10,\nurl\n#EXT-X-ENDLIST\n');
         });
     });
 });
