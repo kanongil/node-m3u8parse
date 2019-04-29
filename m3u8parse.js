@@ -1,34 +1,26 @@
 'use strict';
 
-const Util = require('util');
-const Split = require('split');
-const Clone = require('clone');
+const Assert = require('assert');
+const Process = require('process');
+const Stream = require('stream');
 
-const AttrList = require('./attrlist');
-
-let debug = function () {};
 try {
-    debug = require('debug')('m3u8parse');
+    var Debug = require('debug');
 }
 catch (err) {}
 
+const Clone = require('clone');
+const Split = require('split');
 
-const ParserError = class extends Error {
+const AttrList = require('./attrlist');
 
-    constructor(msg, line, line_no, constr) {
 
-        super();
-
-        Error.captureStackTrace(this, constr || this);
-        this.message = msg || 'Error';
-        this.line = line;
-        this.lineNumber = line_no;
-    }
+const internals = {
+    debug: Debug ? Debug('m3u8parse') : function () {}
 };
 
-ParserError.prototype.name = 'Parser Error';
 
-const lastSegmentProperty = function (index, key, seqNo, incrFn) {
+internals.lastSegmentProperty = function (index, key, seqNo, incrFn) {
 
     let segment;
     while ((segment = index.getSegment(seqNo--)) !== null) {
@@ -45,7 +37,322 @@ const lastSegmentProperty = function (index, key, seqNo, incrFn) {
     return null;
 };
 
-const M3U8Playlist = class {
+
+exports = module.exports = function (input, options = {}, cb) {
+
+    const m3u8 = new exports.M3U8Playlist();
+    let line_no = 0;
+    let meta = {};
+    let cleanup = function () {};
+    let promise;
+
+    Assert.ok(input || input === '', 'Input must be a stream, string, or buffer');
+
+    if (typeof options === 'function') {
+        cb = options;
+        options = {};
+    }
+    else if (typeof cb !== 'function') {
+        promise = new Promise((resolve, reject) => {
+
+            cb = (err, res) => {
+
+                return err ? reject(err) : resolve(res);
+            };
+        });
+    }
+
+    const extensions = Clone(options.extensions || {});
+
+    const ReportError = function (err) {
+
+        cleanup();
+        cb(err);
+    };
+
+    const Complete = function () {
+
+        if (line_no === 0) {
+            return ReportError(new exports.ParserError('No line data', '', -1));
+        }
+
+        cleanup();
+        cb(null, m3u8);
+    };
+
+    const ParseExt = function (cmd, arg) {
+
+        // parse vendor extensions
+        if (cmd in extensions) {
+            const extObj = options.extensions[cmd] ? meta : m3u8;
+            if (!extObj.vendor) {
+                extObj.vendor = {};
+            }
+
+            extObj.vendor[cmd] = arg;
+            return true;
+        }
+
+        if (!(cmd in extParser)) {
+            return false;
+        }
+
+        internals.debug('parsing ext', cmd, arg);
+        extParser[cmd](arg);
+
+        return true;
+    };
+
+    const ParseLine = function (line) {
+
+        line_no += 1;
+
+        if (line_no === 1) {
+            if (line !== '#EXTM3U') {
+                return ReportError(new exports.ParserError('Missing required #EXTM3U header', line, line_no));
+            }
+
+            return true;
+        }
+
+        if (!line.length) {
+            return true;
+        } // blank lines are ignored (3.1)
+
+        if (line[0] === '#') {
+            const matches = /^(#EXT[^:]*)(:?.*)$/.exec(line);
+            if (!matches) {
+                return internals.debug('ignoring comment', line);
+            }
+
+            const cmd = matches[1];
+            const arg = matches[2].length > 1 ? matches[2].slice(1) : null;
+
+            if (!ParseExt(cmd, arg)) {
+                return internals.debug('ignoring unknown #EXT:' + cmd, line_no);
+            }
+        }
+        else if (m3u8.master) {
+            meta.uri = line;
+            m3u8.variants.push(meta);
+            meta = {};
+        }
+        else {
+            if (!('duration' in meta)) {
+                return ReportError(new exports.ParserError('Missing #EXTINF before media file URI', line, line_no));
+            }
+
+            m3u8.segments.push(new exports.M3U8Segment(line, meta, m3u8.version));
+            meta = {};
+        }
+
+        return true;
+    };
+
+    // TODO: add more validation logic
+    const extParser = {
+        '#EXT-X-VERSION': (arg) => {
+
+            m3u8.version = parseInt(arg, 10);
+
+            let attrname;
+            if (m3u8.version >= 4) {
+                for (attrname in extParserV4) {
+                    extParser[attrname] = extParserV4[attrname];
+                }
+            }
+
+            if (m3u8.version >= 5) {
+                for (attrname in extParserV5) {
+                    extParser[attrname] = extParserV5[attrname];
+                }
+            }
+        },
+        '#EXT-X-TARGETDURATION': (arg) => {
+
+            m3u8.target_duration = parseInt(arg, 10);
+        },
+        '#EXT-X-ALLOW-CACHE': (arg) => {
+
+            m3u8.allow_cache = (arg !== 'NO');
+        },
+        '#EXT-X-MEDIA-SEQUENCE': (arg) => {
+
+            m3u8.first_seq_no = parseInt(arg, 10);
+        },
+        '#EXT-X-DISCONTINUITY-SEQUENCE': (arg) => {
+
+            m3u8.discontinuity_sequence = parseInt(arg, 10);
+        },
+        '#EXT-X-PLAYLIST-TYPE': (arg) => {
+
+            m3u8.type = arg;
+        },
+        '#EXT-X-START': (arg) => {
+
+            m3u8.start = new AttrList(arg);
+        },
+        '#EXT-X-INDEPENDENT-SEGMENTS': () => {
+
+            m3u8.independent_segments = true;
+        },
+        '#EXT-X-ENDLIST': () => {
+
+            m3u8.ended = true;
+        },
+
+        '#EXTINF': (arg) => {
+
+            const n = arg.split(',');
+            meta.duration = parseFloat(n.shift());
+            meta.title = n.join(',');
+
+            if (meta.duration <= 0) {
+                return ReportError(new exports.ParserError('Invalid duration', '#EXTINF:' + arg, line_no));
+            }
+        },
+        '#EXT-X-KEY': (arg) => {
+
+            if (!meta.keys) {
+                meta.keys = [];
+            }
+
+            meta.keys.push(new AttrList(arg));
+        },
+        '#EXT-X-PROGRAM-DATE-TIME': (arg) => {
+
+            meta.program_time = new Date(arg);
+        },
+        '#EXT-X-DISCONTINUITY': () => {
+
+            meta.discontinuity = true;
+        },
+
+        // master
+        '#EXT-X-STREAM-INF': (arg) => {
+
+            m3u8.master = true;
+            meta.info = new AttrList(arg);
+        },
+        // master v4 since master streams are not required to specify version
+        '#EXT-X-MEDIA': (arg) => {
+
+            const attrs = new AttrList(arg);
+            const id = attrs.quotedString('group-id') || '#';
+
+            let list = m3u8.groups.get(id);
+            if (!list) {
+                list = [];
+                m3u8.groups.set(id, list);
+                if (id !== '#') {
+                    list.type = attrs.type;
+                }
+            }
+
+            list.push(attrs);
+        },
+        '#EXT-X-I-FRAME-STREAM-INF': (arg) => {
+
+            m3u8.iframes.push(new AttrList(arg));
+        },
+        '#EXT-X-SESSION-DATA': (arg) => {
+
+            const attrs = new AttrList(arg);
+            const id = attrs.quotedString('data-id');
+
+            if (id) {
+                let list = m3u8.data.get(id);
+                if (!list) {
+                    list = [];
+                    m3u8.data.set(id, list);
+                }
+
+                list.push(attrs);
+            }
+        },
+        '#EXT-X-SESSION-KEY': (arg) => {
+
+            m3u8.session_keys.push(new AttrList(arg));
+        }
+    };
+
+    const extParserV4 = {
+        '#EXT-X-I-FRAMES-ONLY': () => {
+
+            m3u8.i_frames_only = true;
+        },
+        '#EXT-X-BYTERANGE': (arg) => {
+
+            const n = arg.split('@');
+            meta.byterange = { length: parseInt(n[0], 10) };
+            if (n.length > 1) {
+                meta.byterange.offset = parseInt(n[1], 10);
+            }
+        }
+    };
+
+    const extParserV5 = {
+        '#EXT-X-MAP': (arg) => {
+
+            meta.map = new AttrList(arg);
+        }
+    };
+
+    if (input instanceof Stream) {
+        const cr = input.pipe(Split());
+        cr.on('data', ParseLine);
+        cr.on('end', Complete);
+
+        input.on('error', ReportError);
+
+        cleanup = function () {
+
+            input.removeListener('error', ReportError);
+            cr.removeListener('data', ParseLine);
+            cr.removeListener('end', Complete);
+        };
+    }
+    else {
+        const lines = (Buffer.isBuffer(input) ? input.toString('utf-8') : input).split(/\r?\n/);
+
+        Process.nextTick(() => {
+
+            try {
+                for (const line of lines) {
+                    if (ParseLine(line) !== true) {
+                        break;
+                    }
+                }
+
+                Complete();
+            }
+            catch (err) {
+                ReportError(err);
+            }
+        });
+    }
+
+    return promise;
+};
+
+
+exports.ParserError = class extends Error {
+
+    constructor(msg, line, line_no, constr) {
+
+        super();
+
+        Error.captureStackTrace(this, constr || this);
+        this.message = msg || 'Error';
+        this.line = line;
+        this.lineNumber = line_no;
+    }
+};
+
+exports.ParserError.prototype.name = 'Parser Error';
+
+
+exports.M3U8Playlist = class {
 
     constructor(obj) {
 
@@ -67,7 +374,7 @@ const M3U8Playlist = class {
 
         this.segments = [];
         if (obj.segments) {
-            this.segments = obj.segments.map((segment) =>  new M3U8Segment(segment));
+            this.segments = obj.segments.map((segment) => new exports.M3U8Segment(segment));
         }
 
         // for master streams
@@ -163,7 +470,7 @@ const M3U8Playlist = class {
     dateForSeqNo(seqNo) {
 
         let elapsed = 0;
-        const program_time = lastSegmentProperty(this, 'program_time', seqNo, (segment) => {
+        const program_time = internals.lastSegmentProperty(this, 'program_time', seqNo, (segment) => {
 
             elapsed += segment.duration;
             return segment.discontinuity; // abort on discontinuity
@@ -307,7 +614,7 @@ const M3U8Playlist = class {
 
     mapForSeqNo(seqNo) {
 
-        return lastSegmentProperty(this, 'map', seqNo, (segment) => segment.discontinuity); // abort on discontinuity
+        return internals.lastSegmentProperty(this, 'map', seqNo, (segment) => segment.discontinuity); // abort on discontinuity
     }
 
     getSegment(seqNo, independent) {
@@ -316,7 +623,7 @@ const M3U8Playlist = class {
         const index = seqNo - this.first_seq_no;
         let segment = this.segments[index] || null;
         if (independent && segment) {
-            segment = new M3U8Segment(segment);
+            segment = new exports.M3U8Segment(segment);
             // EXT-X-KEY, EXT-X-MAP, EXT-X-PROGRAM-DATE-TIME, EXT-X-BYTERANGE needs to be individualized
             segment.program_time = this.dateForSeqNo(seqNo);
             segment.keys = this.keysForSeqNo(seqNo);
@@ -455,7 +762,7 @@ const M3U8Playlist = class {
             });
 
             // add non-standard marlin entry
-            if (this.keys && Util.isArray(this.keys)) {
+            if (this.keys && Array.isArray(this.keys)) {
                 this.keys.forEach((key) => {
 
                     m3u8 += '#EXT-X-KEY:' + new AttrList(key) + '\n';
@@ -511,7 +818,7 @@ const M3U8Playlist = class {
 };
 
 
-const M3U8Segment = class {
+exports.M3U8Segment = class {
 
     constructor(uri, meta, version) {
 
@@ -597,272 +904,5 @@ const M3U8Segment = class {
 };
 
 
-const M3U8Parse = function (stream, options, cb) {
-
-    const m3u8 = new M3U8Playlist();
-    let line_no = 0;
-    let meta = {};
-
-    if (typeof options === 'function') {
-        cb = options;
-        options = {};
-    }
-
-    const extensions = Clone(options.extensions || {});
-
-    const ReportError = function (err) {
-
-        cleanup();
-        cb(err);
-    };
-
-    const Complete = function () {
-
-        if (line_no === 0) {
-            return ReportError(new ParserError('No line data', '', -1));
-        }
-
-        cleanup();
-        cb(null, m3u8);
-    };
-
-    const ParseExt = function (cmd, arg) {
-
-        // parse vendor extensions
-        if (cmd in extensions) {
-            const extObj = options.extensions[cmd] ? meta : m3u8;
-            if (!extObj.vendor) {
-                extObj.vendor = {};
-            }
-
-            extObj.vendor[cmd] = arg;
-            return true;
-        }
-
-        if (!(cmd in extParser)) {
-            return false;
-        }
-
-        debug('parsing ext', cmd, arg);
-        extParser[cmd](arg);
-        return true;
-    };
-
-    const ParseLine = function (line) {
-
-        line_no += 1;
-
-        if (line_no === 1) {
-            if (line !== '#EXTM3U') {
-                return ReportError(new ParserError('Missing required #EXTM3U header', line, line_no));
-            }
-
-            return true;
-        }
-
-        if (!line.length) {
-            return true;
-        } // blank lines are ignored (3.1)
-
-        if (line[0] === '#') {
-            const matches = /^(#EXT[^:]*)(:?.*)$/.exec(line);
-            if (!matches) {
-                return debug('ignoring comment', line);
-            }
-
-            const cmd = matches[1];
-            const arg = matches[2].length > 1 ? matches[2].slice(1) : null;
-
-            if (!ParseExt(cmd, arg)) {
-                return debug('ignoring unknown #EXT:' + cmd, line_no);
-            }
-        }
-        else if (m3u8.master) {
-            meta.uri = line;
-            m3u8.variants.push(meta);
-            meta = {};
-        }
-        else {
-            if (!('duration' in meta)) {
-                return ReportError(new ParserError('Missing #EXTINF before media file URI', line, line_no));
-            }
-
-            m3u8.segments.push(new M3U8Segment(line, meta, m3u8.version));
-            meta = {};
-        }
-
-        return true;
-    };
-
-    const cr = stream.pipe(Split());
-    cr.on('data', ParseLine);
-    cr.on('end', Complete);
-
-    stream.on('error', ReportError);
-
-    const cleanup = function () {
-
-        stream.removeListener('error', ReportError);
-        cr.removeListener('data', ParseLine);
-        cr.removeListener('end', Complete);
-    };
-
-    // TODO: add more validation logic
-    const extParser = {
-        '#EXT-X-VERSION': (arg) => {
-
-            m3u8.version = parseInt(arg, 10);
-
-            let attrname;
-            if (m3u8.version >= 4) {
-                for (attrname in extParserV4) {
-                    extParser[attrname] = extParserV4[attrname];
-                }
-            }
-
-            if (m3u8.version >= 5) {
-                for (attrname in extParserV5) {
-                    extParser[attrname] = extParserV5[attrname];
-                }
-            }
-        },
-        '#EXT-X-TARGETDURATION': (arg) => {
-
-            m3u8.target_duration = parseInt(arg, 10);
-        },
-        '#EXT-X-ALLOW-CACHE': (arg) => {
-
-            m3u8.allow_cache = (arg !== 'NO');
-        },
-        '#EXT-X-MEDIA-SEQUENCE': (arg) => {
-
-            m3u8.first_seq_no = parseInt(arg, 10);
-        },
-        '#EXT-X-DISCONTINUITY-SEQUENCE':(arg) => {
-
-            m3u8.discontinuity_sequence = parseInt(arg, 10);
-        },
-        '#EXT-X-PLAYLIST-TYPE': (arg) => {
-
-            m3u8.type = arg;
-        },
-        '#EXT-X-START': (arg) => {
-
-            m3u8.start = new AttrList(arg);
-        },
-        '#EXT-X-INDEPENDENT-SEGMENTS': () => {
-
-            m3u8.independent_segments = true;
-        },
-        '#EXT-X-ENDLIST': () => {
-
-            m3u8.ended = true;
-        },
-
-        '#EXTINF': (arg) => {
-
-            const n = arg.split(',');
-            meta.duration = parseFloat(n.shift());
-            meta.title = n.join(',');
-
-            if (meta.duration <= 0) {
-                return ReportError(new ParserError('Invalid duration', '#EXTINF:' + arg, line_no));
-            }
-        },
-        '#EXT-X-KEY': (arg) => {
-
-            if (!meta.keys) {
-                meta.keys = [];
-            }
-
-            meta.keys.push(new AttrList(arg));
-        },
-        '#EXT-X-PROGRAM-DATE-TIME': (arg) => {
-
-            meta.program_time = new Date(arg);
-        },
-        '#EXT-X-DISCONTINUITY': () => {
-
-            meta.discontinuity = true;
-        },
-
-        // master
-        '#EXT-X-STREAM-INF': (arg) => {
-
-            m3u8.master = true;
-            meta.info = new AttrList(arg);
-        },
-        // master v4 since master streams are not required to specify version
-        '#EXT-X-MEDIA': (arg) => {
-
-            const attrs = new AttrList(arg);
-            const id = attrs.quotedString('group-id') || '#';
-
-            let list = m3u8.groups.get(id);
-            if (!list) {
-                list = [];
-                m3u8.groups.set(id, list);
-                if (id !== '#') {
-                    list.type = attrs.type;
-                }
-            }
-
-            list.push(attrs);
-        },
-        '#EXT-X-I-FRAME-STREAM-INF': (arg) => {
-
-            m3u8.iframes.push(new AttrList(arg));
-        },
-        '#EXT-X-SESSION-DATA': (arg) => {
-
-            const attrs = new AttrList(arg);
-            const id = attrs.quotedString('data-id');
-
-            if (id) {
-                let list = m3u8.data.get(id);
-                if (!list) {
-                    list = [];
-                    m3u8.data.set(id, list);
-                }
-
-                list.push(attrs);
-            }
-        },
-        '#EXT-X-SESSION-KEY': (arg) => {
-
-            m3u8.session_keys.push(new AttrList(arg));
-        }
-    };
-
-    const extParserV4 = {
-        '#EXT-X-I-FRAMES-ONLY': () => {
-
-            m3u8.i_frames_only = true;
-        },
-        '#EXT-X-BYTERANGE': (arg) => {
-
-            const n = arg.split('@');
-            meta.byterange = { length:parseInt(n[0], 10) };
-            if (n.length > 1) {
-                meta.byterange.offset = parseInt(n[1], 10);
-            }
-        }
-    };
-
-    const extParserV5 = {
-        '#EXT-X-MAP': (arg) => {
-
-            meta.map = new AttrList(arg);
-        }
-    };
-};
-
-exports = module.exports = M3U8Parse;
-
-exports.M3U8Playlist = M3U8Playlist;
-
-exports.M3U8Segment = M3U8Segment;
-
 exports.AttrList = AttrList;
 
-exports.ParserError = ParserError;
