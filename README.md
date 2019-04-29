@@ -9,7 +9,6 @@ This module is tested and is used in production systems.
 ## TODO
 
  * Validation option.
- * `String`/`Buffer` input.
 
 # License
 
