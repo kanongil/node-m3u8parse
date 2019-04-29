@@ -55,17 +55,11 @@ const AttrList = class {
             }
         }
 
-        if (!this[name]) {
-            return BigInt(0);
-        }
-
-        const stringValue = this[name].trim();
+        const stringValue = this[name];
         const intValue = BigInt(stringValue);
 
-        if (stringValue.length >= 2 && stringValue[0] === '0') {
-            if (stringValue[1] < '0' || stringValue[1] > '9') {
-                throw new SyntaxError('Representation is not decimal integer compatible');
-            }
+        if (/^\s*0[^\d]/.test(stringValue)) {
+            throw new SyntaxError('Representation is not decimal integer compatible');
         }
 
         return intValue;
@@ -85,15 +79,18 @@ const AttrList = class {
                 }
             }
             else {
-                this[name] = '0x' + Math.floor(value).toString(16);
+                this[name] = '0x' + BigInt(value).toString(16);
             }
         }
 
-        if (!this[name].startsWith('0x')) {
-            return Number.NaN;
+        const stringValue = this[name];
+        const intValue = BigInt(stringValue);
+
+        if (!/^\s*0x/.test(stringValue)) {
+            throw new SyntaxError('Representation is not hexadecimal integer compatible');
         }
 
-        return BigInt(this[name] || 0);
+        return intValue;
     }
 
     decimalIntegerAsNumber(attrName, value) {

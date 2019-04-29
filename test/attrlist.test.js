@@ -131,6 +131,9 @@ describe('AttrList', () => {
         it('handles missing attributes', () => {
 
             const list = new AttrList();
+            expect(() => list.decimalInteger('INT')).to.throw(TypeError);
+            expect(() => list.hexadecimalInteger('HEX')).to.throw(TypeError);
+            expect(isNaN(list.hexadecimalIntegerAsNumber('HEX')));
             expect(isNaN(list.decimalIntegerAsNumber('INT')));
             expect(isNaN(list.hexadecimalIntegerAsNumber('HEX')));
             expect(isNaN(list.decimalFloatingPoint('FLOAT')));
@@ -153,18 +156,22 @@ describe('AttrList', () => {
 
         it('handles decimalInteger conversions', () => {
 
-            const list = new AttrList('INT1=1234567890123456789,INT2=123,INT3=0');
+            const list = new AttrList('INT1=1234567890123456789,INT2=123,INT3=0,HEX=0x123');
             expect(list.decimalInteger('INT1')).to.equal(BigInt('1234567890123456789'));
             expect(list.decimalInteger('INT2')).to.equal(BigInt(123));
             expect(list.decimalInteger('INT3')).to.equal(BigInt(0));
+
+            expect(() => list.decimalInteger('HEX')).to.throw(SyntaxError);
         });
 
         it('handles hexadecimalInteger conversions', () => {
 
-            const list = new AttrList('HEX1=0x0123456789abcdef0123456789abcdef,HEX2=0x123,HEX3=0x0');
+            const list = new AttrList('HEX1=0x0123456789abcdef0123456789abcdef,HEX2=0x123,HEX3=0x0,INT=123');
             expect(list.hexadecimalInteger('HEX1')).to.equal(BigInt('0x0123456789abcdef0123456789abcdef'));
             expect(list.hexadecimalInteger('HEX2')).to.equal(BigInt(0x123));
             expect(list.hexadecimalInteger('HEX3')).to.equal(BigInt(0));
+
+            expect(() => list.hexadecimalInteger('INT')).to.throw(SyntaxError);
         });
 
         it('returns infinity on large number conversions', () => {
@@ -249,6 +256,7 @@ describe('AttrList', () => {
 
         it('handles decimalInteger conversions', () => {
 
+            expect(encode('decimalInteger', BigInt('1234567890123456789'))).to.equal('1234567890123456789');
             expect(encode('decimalInteger', Buffer.from([0x11,0x22,0x10,0xF4,0x7D,0xE9,0x81,0x15]))).to.equal('1234567890123456789');
             expect(encode('decimalInteger', 123)).to.equal('123');
             expect(encode('decimalInteger', Buffer.from([0x0]))).to.equal('0');
@@ -258,8 +266,10 @@ describe('AttrList', () => {
 
         it('handles hexadecimalInteger conversions', () => {
 
+            expect(encode('hexadecimalInteger', BigInt('0x123456789abcdef0123456789abcdef'))).to.equal('0x123456789abcdef0123456789abcdef');
             expect(encode('hexadecimalInteger', Buffer.from([0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef,0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef]))).to.equal('0x123456789abcdef0123456789abcdef');
             expect(encode('hexadecimalInteger', 0x123)).to.equal('0x123');
+            expect(encode('hexadecimalInteger', Buffer.from([0xff]))).to.equal('0xff');
             expect(encode('hexadecimalInteger', Buffer.from([0x0]))).to.equal('0x0');
             expect(encode('hexadecimalInteger', Buffer.alloc(0))).to.equal('0x0');
             expect(encode('hexadecimalInteger', 0)).to.equal('0x0');
