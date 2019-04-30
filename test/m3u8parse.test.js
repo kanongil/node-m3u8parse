@@ -186,6 +186,39 @@ describe('M3U8Playlist', () => {
             expect(testIndexSingle).to.equal(new M3u8Parse.M3U8Playlist(testIndexSingle));
             expect(masterIndex).to.equal(new M3u8Parse.M3U8Playlist(masterIndex));
         });
+
+        it('support JSONification', () => {
+
+            expect(testIndex).to.equal(new M3u8Parse.M3U8Playlist(JSON.parse(JSON.stringify(testIndex))));
+            expect(testIndexAlt).to.equal(new M3u8Parse.M3U8Playlist(JSON.parse(JSON.stringify(testIndexAlt))));
+            expect(testIndexSingle).to.equal(new M3u8Parse.M3U8Playlist(JSON.parse(JSON.stringify(testIndexSingle))));
+            expect(masterIndex).to.equal(new M3u8Parse.M3U8Playlist(JSON.parse(JSON.stringify(masterIndex))));
+        });
+
+        it('performs object to Map conversion', async () => {
+
+            const stream = Fs.createReadStream(Path.join(fixtureDir, 'variant_v4.m3u8'));
+            const index = await M3u8Parse(stream);
+
+            const toObject = function (map) {
+
+                const obj = Object.create(null);
+
+                for (const [key, value] of map) {
+                    obj[key] = value;
+                }
+
+                return obj;
+            };
+
+            expect(index.groups.size).to.be.above(0);
+            expect(index.data.size).to.be.above(0);
+
+            index.groups = toObject(index.groups);
+            index.data = toObject(index.data);
+
+            expect(new M3u8Parse.M3U8Playlist(index)).to.equal(masterIndex);
+        });
     });
 
     describe('#totalDuration()', () => {
@@ -562,6 +595,12 @@ describe('M3U8Playlist', () => {
                 ['#EXT-MY-SIMPLE', false]
             ]);
             expect(index.toString()).to.equal('#EXTM3U\n#EXT-MY-TEST:yeah!\n#EXT-MY-SIMPLE\n');
+
+            index.vendor = {
+                '#EXT-MY-TEST': 'yeah!',
+                '#EXT-MY-SIMPLE': false
+            };
+            expect(new M3u8Parse.M3U8Playlist(index).toString()).to.equal('#EXTM3U\n#EXT-MY-TEST:yeah!\n#EXT-MY-SIMPLE\n');
         });
 
         it('should handle vendor segment-extensions', () => {
