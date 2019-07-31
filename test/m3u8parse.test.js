@@ -127,12 +127,12 @@ describe('M3U8Parse', () => {
         const index = await M3u8Parse(stream, { extensions: { '#EXT-X-UNKNOWN-EXTENSION': false, '#EXT-Y-META-EXTENSION': true } });
         expect(index).to.exist();
 
-        expect(index.vendor).to.equal(new Map([['#EXT-X-UNKNOWN-EXTENSION', null]]));
-        expect(index.segments[2].vendor).to.equal(new Map([['#EXT-Y-META-EXTENSION', 'w00t']]));
+        expect(index.vendor).to.equal([['#EXT-X-UNKNOWN-EXTENSION', null]]);
+        expect(index.segments[2].vendor).to.equal([['#EXT-Y-META-EXTENSION', 'w00t']]);
 
         const index2 = new M3u8Parse.M3U8Playlist(index);
-        expect(index2.vendor).to.equal(new Map([['#EXT-X-UNKNOWN-EXTENSION', null]]));
-        expect(index2.segments[2].vendor).to.equal(new Map([['#EXT-Y-META-EXTENSION', 'w00t']]));
+        expect(index2.vendor).to.equal([['#EXT-X-UNKNOWN-EXTENSION', null]]);
+        expect(index2.segments[2].vendor).to.equal([['#EXT-Y-META-EXTENSION', 'w00t']]);
     });
 
     it('should fail on invalid files', async () => {
