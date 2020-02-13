@@ -1,5 +1,6 @@
 #EXTM3U
 #EXT-X-VERSION:6
+#EXT-X-DEFINE:NAME="test",VALUE="ok"
 #EXT-X-SESSION-KEY:METHOD=AES-128,URI="https://priv.example.com/key.php?r=52"
 #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="aac",NAME="English",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="en",URI="main/english-audio.m3u8"
 #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="aac",NAME="Deutsche",DEFAULT=NO,AUTOSELECT=YES,LANGUAGE="de",URI="main/german-audio.m3u8"

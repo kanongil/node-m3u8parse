@@ -531,13 +531,20 @@ describe('M3U8Playlist', () => {
         });
     });
 
-    describe('parsed object', () => {
+    describe('parsed object includes', () => {
 
-        it('includes session-data', () => {
+        it('session-data', () => {
 
             expect(masterIndex.data.get('com.example.lyrics')[0].quotedString('uri')).to.equal('lyrics.json');
             expect(masterIndex.data.get('com.example.title')[0].quotedString('value')).to.equal('This is an example');
             expect(masterIndex.data.get('com.example.title')[1].quotedString('value')).to.equal('Este es un ejemplo');
+        });
+
+        it('segment gap info', () => {
+
+            expect(testIndexSingle.segments[0].gap).to.not.exist();
+            expect(testIndexSingle.segments[1].gap).to.be.true();
+            expect(testIndexSingle.segments[2].gap).to.not.exist();
         });
     });
 

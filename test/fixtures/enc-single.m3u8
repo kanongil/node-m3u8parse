@@ -11,6 +11,7 @@ http://media.example.com/streamPart1.ts
 #EXT-X-BYTERANGE:300000@0
 #EXT-X-KEY:METHOD=NONE
 #EXTINF:15.0,
+#EXT-X-GAP
 http://media.example.com/streamPart2.ts
 #EXT-X-BYTERANGE:300000
 #EXT-X-KEY:METHOD=SAMPLE-AES,URI="https://priv.example.com/key.php?r=53",IV=0x4321

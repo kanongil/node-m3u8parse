@@ -23,8 +23,8 @@
     "split": "^1.0.0"
   },
   "devDependencies": {
-    "@hapi/code": "^6.0.0",
-    "@hapi/lab": "^19.1.0",
+    "@hapi/code": "^7.0.0",
+    "@hapi/lab": "^21.0.0",
     "readable-stream": "^3.3.0"
   },
   "repository": {
