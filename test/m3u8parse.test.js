@@ -3,7 +3,6 @@
 const Fs = require('fs');
 const Path = require('path');
 
-const { Readable } = require('readable-stream');
 const Code = require('@hapi/code');
 const Lab = require('@hapi/lab');
 const M3u8Parse = require('..');
@@ -552,44 +551,34 @@ describe('M3U8Playlist', () => {
 
         it('should output valid index files', async () => {
 
-            const r1 = new Readable();
-            r1.push(testIndex.toString());
-            r1.push(null);
-
-            // test that output string parses correctly
-            const index = await M3u8Parse(r1);
+            const index = await M3u8Parse(testIndex.toString());
             expect(index).to.exist();
             expect(testIndex).to.equal(index);
 
-            const r2 = new Readable();
-            r2.push(testIndexAlt.toString());
-            r2.push(null);
-
-            // test that output string parses correctly
-            const index2 = await M3u8Parse(r2);
+            const index2 = await M3u8Parse(testIndexAlt.toString());
             expect(index2).to.exist();
             expect(testIndexAlt).to.equal(index2);
 
-            const r3 = new Readable();
-            r3.push(testIndexSingle.toString());
-            r3.push(null);
-
-            // test that output string parses correctly
-            const index3 = await M3u8Parse(r3);
+            const index3 = await M3u8Parse(testIndexSingle.toString());
             expect(index3).to.exist();
             expect(testIndexSingle).to.equal(index3);
+
+            const testIndexLl = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'll.m3u8')));
+            const index4 = await M3u8Parse(testIndexLl.toString());
+            expect(index4).to.exist();
+            expect(testIndexLl).to.equal(index4);
         });
 
         it('should output valid master files', async () => {
 
-            const r = new Readable();
-            r.push(masterIndex.toString());
-            r.push(null);
-
-            // test that output string parses correctly
-            const index = await M3u8Parse(r);
+            const index = await M3u8Parse(masterIndex.toString());
             expect(index).to.exist();
             expect(masterIndex).to.equal(index);
+
+            const masterIndexV6 = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'variant_v6.m3u8')));
+            const index2 = await M3u8Parse(masterIndexV6.toString());
+            expect(index2).to.exist();
+            expect(masterIndexV6).to.equal(index2);
         });
 
         it('should handle vendor extensions', () => {
