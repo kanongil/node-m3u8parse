@@ -146,46 +146,26 @@ describe('M3U8Playlist', () => {
     let testIndex = null;
     let testIndexAlt = null;
     let testIndexSingle = null;
+    let testIndexLl = null;
     let masterIndex = null;
 
     before(async () => {
 
-        const stream = Fs.createReadStream(Path.join(fixtureDir, 'enc.m3u8'));
-        const index = await M3u8Parse(stream);
-        testIndex = index;
-    });
-
-    before(async () => {
-
-        const stream = Fs.createReadStream(Path.join(fixtureDir, 'enc-discont.m3u8'));
-        const index = await M3u8Parse(stream);
-        testIndexAlt = index;
-    });
-
-    before(async () => {
-
-        const stream = Fs.createReadStream(Path.join(fixtureDir, 'enc-single.m3u8'));
-        const index = await M3u8Parse(stream);
-        testIndexSingle = index;
-    });
-
-    before(async () => {
-
-        const stream = Fs.createReadStream(Path.join(fixtureDir, 'variant_v4.m3u8'));
-        const index = await M3u8Parse(stream);
-        masterIndex = index;
+        testIndex = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc.m3u8')));
+        testIndexAlt = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc-discont.m3u8')));
+        testIndexSingle = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc-single.m3u8')));
+        testIndexLl = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'll.m3u8')));
+        masterIndex = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'variant_v4.m3u8')));
     });
 
     describe('constructor', () => {
 
-        it('should clone passed object', async () => {
+        it('should clone passed object', () => {
 
             expect(testIndex).to.equal(new M3u8Parse.M3U8Playlist(testIndex));
             expect(testIndexAlt).to.equal(new M3u8Parse.M3U8Playlist(testIndexAlt));
             expect(testIndexSingle).to.equal(new M3u8Parse.M3U8Playlist(testIndexSingle));
             expect(masterIndex).to.equal(new M3u8Parse.M3U8Playlist(masterIndex));
-
-            const testIndexLl = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'll.m3u8')));
             expect(testIndexLl).to.equal(new M3u8Parse.M3U8Playlist(testIndexLl));
         });
 
@@ -498,6 +478,12 @@ describe('M3U8Playlist', () => {
             expect(index.segments[0].keys[0].quotedString('uri')).to.equal('https://priv.example.com/key.php?r=52?segment-key');
             expect(index.segments[3].uri).to.equal('http://media.example.com/fileSequence53-A.ts?segment');
             // TODO: test segment-map
+
+            const index2 = new M3u8Parse.M3U8Playlist(testIndexLl).rewriteUris(mapFn);
+            expect(index2.meta.rendition_reports[0].quotedString('uri')).to.equal('../1M/waitForMSN.php?rendition-report');
+            expect(index2.meta.preload_hints[0].quotedString('uri')).to.equal('filePart273.4.mp4?preload-hint');
+            expect(index2.segments[2].parts[0].quotedString('uri')).to.equal('filePart271.0.mp4?segment-part');
+            expect(index2.segments[4].parts[3].quotedString('uri')).to.equal('filePart273.3.mp4?segment-part');
         });
 
         it('should map all master playlist uris', () => {
@@ -566,7 +552,6 @@ describe('M3U8Playlist', () => {
             expect(index3).to.exist();
             expect(testIndexSingle).to.equal(index3);
 
-            const testIndexLl = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'll.m3u8')));
             const index4 = await M3u8Parse(testIndexLl.toString());
             expect(index4).to.exist();
             expect(testIndexLl).to.equal(index4);
