@@ -178,12 +178,15 @@ describe('M3U8Playlist', () => {
 
     describe('constructor', () => {
 
-        it('should clone passed object', () => {
+        it('should clone passed object', async () => {
 
             expect(testIndex).to.equal(new M3u8Parse.M3U8Playlist(testIndex));
             expect(testIndexAlt).to.equal(new M3u8Parse.M3U8Playlist(testIndexAlt));
             expect(testIndexSingle).to.equal(new M3u8Parse.M3U8Playlist(testIndexSingle));
             expect(masterIndex).to.equal(new M3u8Parse.M3U8Playlist(masterIndex));
+
+            const testIndexLl = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'll.m3u8')));
+            expect(testIndexLl).to.equal(new M3u8Parse.M3U8Playlist(testIndexLl));
         });
 
         it('support JSONification', () => {
