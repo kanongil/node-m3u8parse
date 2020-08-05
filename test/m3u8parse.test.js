@@ -516,6 +516,87 @@ describe('M3U8Playlist', () => {
             expect(index.segments[0].uri).to.equal('http://media.example.com/fileSequence52-A.ts');
             expect(index.segments[0].keys[0].quotedString('uri')).to.equal('https://priv.example.com/key.php?r=52');
             expect(index.segments[3].uri).to.equal('http://media.example.com/fileSequence53-A.ts');
+
+            const index2 = new M3u8Parse.M3U8Playlist(masterIndex).rewriteUris(mapFn);
+            expect(index2.variants[0].uri).to.equal('low/video-only.m3u8');
+            expect(index2.iframes[0].quotedString('uri')).to.equal('lo/iframes.m3u8');
+            expect(index2.groups.get('aac')[0].quotedString('uri')).to.equal('main/english-audio.m3u8');
+        });
+
+        it('resolves in playlist order', () => {
+
+            const index = new M3u8Parse.M3U8Playlist({
+                data: {
+                    info: [{ uri: '"data:"' }]
+                },
+                segments: [{
+                    uri: '',
+                    keys: [{ uri: '"key:1"' }],
+                    map: { uri: '"map:1"' },
+                    parts: [{ uri: '"part:1"' }]
+                },{
+                    keys: [{ uri: '"key:2"' }],
+                    map: { uri: '"map:2"' },
+                    parts: [{ uri: '"part:2"' }]
+                }],
+                meta: {
+                    preload_hints: [{ uri: '"hint:"' }],
+                    rendition_reports: [{ uri: '"report:"' }]
+                }
+            });
+
+            const calls = [];
+            const mapFn = (uri, type) => {
+
+                calls.push(type);
+            };
+
+            index.rewriteUris(mapFn);
+
+            expect(calls).to.have.length(10);
+            expect(calls).to.equal([
+                'data',
+                'segment-key',
+                'segment-map',
+                'segment-part',
+                'segment',
+                'segment-key',
+                'segment-map',
+                'segment-part',
+                'preload-hint',
+                'rendition-report'
+            ]);
+        });
+
+        it('works when attributes are missing', () => {
+
+            const mapFn = function (uri, type) {
+
+                return uri + '?' + type;
+            };
+
+            const index = new M3u8Parse.M3U8Playlist(testIndex);
+            delete index.data;
+            delete index.meta;
+
+            const index2 = index.rewriteUris(mapFn);
+            expect(index2.segments[0].uri).to.equal('http://media.example.com/fileSequence52-A.ts?segment');
+            expect(index2.segments[0].keys[0].quotedString('uri')).to.equal('https://priv.example.com/key.php?r=52?segment-key');
+            expect(index2.segments[3].uri).to.equal('http://media.example.com/fileSequence53-A.ts?segment');
+        });
+
+        it('assigns empty string uris', () => {
+
+            const mapFn = () => '';
+
+            const index = new M3u8Parse.M3U8Playlist(testIndexLl).rewriteUris(mapFn);
+            expect(index.meta.rendition_reports[0].quotedString('uri')).to.equal('');
+            expect(index.meta.preload_hints[0].quotedString('uri')).to.equal('');
+            expect(index.segments[0].uri).to.equal('');
+            expect(index.segments[2].parts[0].quotedString('uri')).to.equal('');
+
+            const index2 = new M3u8Parse.M3U8Playlist(masterIndex).rewriteUris(mapFn);
+            expect(index2.variants[0].uri).to.equal('');
         });
     });
 
