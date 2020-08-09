@@ -80,6 +80,11 @@ describe('M3U8Parse', () => {
         expect(index.master).to.be.false();
     });
 
+    it('throws a ParserError for empty input', async () => {
+
+        await expect(M3u8Parse('')).to.reject(M3u8Parse.ParserError, 'No line data');
+    });
+
     it('should parse a valid VOD file', async () => {
 
         const stream = Fs.createReadStream(Path.join(fixtureDir, 'vod.m3u8'));
