@@ -9,25 +9,53 @@ const { AttrList } = require('..');
 
 // Test shortcuts
 
-const { describe, it } = exports.lab = Lab.script();
+const { before, describe, it } = exports.lab = Lab.script();
 const { expect } = Code;
 
 
 describe('AttrList', () => {
 
-    it('constructor() supports empty arguments', () => {
+    describe('constructor()', () => {
 
-        expect(new AttrList()).to.equal({});
-        expect(new AttrList({})).to.equal({});
-        expect(new AttrList(undefined)).to.equal({});
-    });
+        it('supports empty arguments', () => {
 
-    it('constructor() supports object argument', () => {
+            const empty = new AttrList('');
+            expect(new AttrList()).to.equal(empty);
+            expect(new AttrList({})).to.equal(empty);
+            expect(new AttrList(undefined)).to.equal(empty);
+        });
 
-        const obj = { value: '42' };
-        const list = new AttrList(obj);
-        expect(list.decimalIntegerAsNumber('VALUE')).to.equal(42);
-        expect(Object.keys(list)).to.have.length(1);
+        it('supports Map argument', () => {
+
+            const map = new Map([['value', '42']]);
+            const list = new AttrList(map);
+            expect(list.decimalIntegerAsNumber('VALUE')).to.equal(42);
+            expect(list.size).to.equal(1);
+        });
+
+        it('supports mappable array argument', () => {
+
+            const list = new AttrList([['value', '42'], ['EMPTY', '']]);
+            expect(list.decimalIntegerAsNumber('VALUE')).to.equal(42);
+            expect(list.enumeratedString('empty')).to.equal('');
+            expect(list.size).to.equal(2);
+        });
+
+        it('supports object argument', () => {
+
+            const obj = { value: '42', EMPTY: '' };
+            const list = new AttrList(obj);
+            expect(list.decimalIntegerAsNumber('VALUE')).to.equal(42);
+            expect(list.enumeratedString('empty')).to.equal('');
+            expect(list.size).to.equal(2);
+        });
+
+        it('creates a copy', () => {
+
+            const orig = new AttrList('A=B');
+            const copy = new AttrList(orig);
+            expect(copy).to.equal(orig);
+        });
     });
 
     it('toString() has valid output', () => {
@@ -36,8 +64,119 @@ describe('AttrList', () => {
         expect(list.toString()).to.equal('INT=42,HEX=0x42,FLOAT=0.42,STRING="hi",ENUM=OK,RES=4x2');
         list.decimalIntegerAsNumber('extra', 123);
         expect(list.toString()).to.equal('INT=42,HEX=0x42,FLOAT=0.42,STRING="hi",ENUM=OK,RES=4x2,EXTRA=123');
-        list.extra = null;
+        list.set('extra', null);
         expect(list.toString()).to.equal('INT=42,HEX=0x42,FLOAT=0.42,STRING="hi",ENUM=OK,RES=4x2');
+    });
+
+    describe('method', () => {
+
+        const types = [
+            ['bigint', BigInt(42)],
+            ['hexint', BigInt(66)],
+            ['int', 42],
+            ['hexno', 66],
+            ['enum', 'OK'],
+            ['string', 'hi'],
+            ['float', 0.42],
+            ['signed-float', -0.42],
+            ['resolution', { width: 4, height: 2 }]
+        ];
+
+        before(({ context }) => {
+
+            context.list = new AttrList('BIGINT=42,HEXINT=0x42,INT=42,HEXNO=0x42,FLOAT=0.42,SIGNED-FLOAT=-0.42,STRING="hi",ENUM=OK,RESOLUTION=4x2');
+        });
+
+        describe('#get()', () => {
+
+            it('handles all known types', ({ context: { list } }) => {
+
+                for (const [type, value] of types) {
+                    expect(list.get(type, type)).to.equal(value);
+                }
+            });
+
+            it('fails on unknown types', ({ context: { list } }) => {
+
+                expect(() => list.get('int', 'b')).to.throw('Invalid type: b');
+            });
+
+            it('fails on non-string attributes', ({ context: { list } }) => {
+
+                expect(() => list.get(undefined)).to.throw('Attributes must be a "string"');
+                expect(() => list.get({})).to.throw('Attributes must be a "string"');
+                expect(() => list.get(Symbol())).to.throw('Attributes must be a "string"');
+            });
+        });
+
+        describe('#set()', () => {
+
+            it('handles all known types', ({ context: { list } }) => {
+
+                const attrs = new AttrList();
+                for (const [type, value] of types) {
+                    attrs.set(type, value, type);
+                }
+
+                expect(attrs).to.equal(list);
+            });
+
+            it('fails on unknown types', ({ context: { list } }) => {
+
+                expect(() => list.set('int', 42, 'b')).to.throw('Invalid type: b');
+            });
+
+            it('fails on non-string attributes', () => {
+
+                expect(() => new AttrList().set(undefined, 'a')).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList().set({}, 'a')).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList().set(Symbol(), 'a')).to.throw('Attributes must be a "string"');
+            });
+        });
+
+        describe('#has()', () => {
+
+            it('returns whether entry exists', () => {
+
+                const attrs = new AttrList('A=B');
+
+                expect(attrs.has('a')).to.be.true();
+                expect(attrs.has('A')).to.be.true();
+                expect(attrs.has('b')).to.be.false();
+            });
+
+            it('fails on non-string attributes', () => {
+
+                expect(() => new AttrList('A=B').has(undefined)).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList('A=B').has({})).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList('A=B').has(Symbol())).to.throw('Attributes must be a "string"');
+            });
+        });
+
+        describe('#delete()', () => {
+
+            it('removes the entry if it exists', () => {
+
+                let attrs = new AttrList('A=B');
+                expect(attrs.delete('a')).to.be.true();
+                expect(attrs.size).to.equal(0);
+
+                attrs = new AttrList('A=B');
+                expect(attrs.delete('A')).to.be.true();
+                expect(attrs.size).to.equal(0);
+
+                attrs = new AttrList('A=B');
+                expect(attrs.delete('B')).to.be.false();
+                expect(attrs.size).to.equal(1);
+            });
+
+            it('fails on non-string attributes', () => {
+
+                expect(() => new AttrList('A=B').delete(undefined)).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList('A=B').delete({})).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList('A=B').delete(Symbol())).to.throw('Attributes must be a "string"');
+            });
+        });
     });
 
     describe('parsing', () => {
@@ -81,7 +220,7 @@ describe('AttrList', () => {
 
             const list = new AttrList('STRING="hi,ENUM=OK,RES=4x2"');
             expect(list.quotedString('STRING')).to.equal('hi,ENUM=OK,RES=4x2');
-            expect(Object.keys(list)).to.have.length(1);
+            expect(list.size).to.equal(1);
         });
 
         it('parses valid enumeratedString attribute', () => {
@@ -125,7 +264,7 @@ describe('AttrList', () => {
             expect(list.quotedString('STRING')).to.equal('hi');
             expect(list.enumeratedString('ENUM')).to.equal('OK');
             expect(list.decimalResolution('RES')).to.equal({ width:4, height:2 });
-            expect(Object.keys(list)).to.have.length(6);
+            expect(list.size).to.equal(6);
         });
 
         it('handles missing attributes', () => {
@@ -140,7 +279,7 @@ describe('AttrList', () => {
             expect(list.quotedString('STRING')).to.equal(undefined);
             expect(list.enumeratedString('ENUM')).to.equal(undefined);
             expect(list.decimalResolution('RES')).to.equal(undefined);
-            expect(Object.keys(list)).to.have.length(0);
+            expect(list.size).to.equal(0);
         });
 
         it('parses dashed attribute names', () => {
@@ -151,7 +290,7 @@ describe('AttrList', () => {
             expect(list.decimalFloatingPoint('-FLOAT')).to.equal(0.42);
             expect(list.quotedString('STRING-')).to.equal('hi');
             expect(list.enumeratedString('ENUM')).to.equal('OK');
-            expect(Object.keys(list)).to.have.length(5);
+            expect(list.size).to.equal(5);
         });
 
         it('handles decimalInteger conversions', () => {
@@ -188,7 +327,7 @@ describe('AttrList', () => {
 
             const list = new AttrList();
             list[method]('VALUE', value);
-            return list.value;
+            return list.get('value', 'enum');
         };
 
         it('encodes valid decimalInteger attribute', () => {
