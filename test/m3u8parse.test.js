@@ -27,41 +27,6 @@ describe('M3U8Parse', () => {
         expect(index.master).to.be.false();
     });
 
-    it('supports callback interface', async () => {
-
-        const stream = Fs.createReadStream(Path.join(fixtureDir, 'enc.m3u8'));
-        const index = await new Promise((resolve, reject) => {
-
-            M3u8Parse(stream, (err, res) => {
-
-                return err ? reject(err) : resolve(res);
-            });
-        });
-
-        expect(index).to.exist();
-        expect(index.master).to.be.false();
-
-        const stream2 = Fs.createReadStream(Path.join(fixtureDir, 'enc.m3u8'));
-        const index2 = await new Promise((resolve, reject) => {
-
-            M3u8Parse(stream2, {}, (err, res) => {
-
-                return err ? reject(err) : resolve(res);
-            });
-        });
-
-        expect(index2).to.exist();
-        expect(index2.master).to.be.false();
-
-        await expect(new Promise((resolve, reject) => {
-
-            M3u8Parse(stream2, {}, (err, res) => {
-
-                return err ? reject(new Error('rejected!')) : resolve(res);
-            });
-        })).to.reject('rejected!');
-    });
-
     it('supports buffer input', async () => {
 
         const buf = Fs.readFileSync(Path.join(fixtureDir, 'enc.m3u8'));
@@ -80,9 +45,9 @@ describe('M3U8Parse', () => {
         expect(index.master).to.be.false();
     });
 
-    it('throws a ParserError for empty input', async () => {
+    it('throws a ParserError for empty input', () => {
 
-        await expect(M3u8Parse('')).to.reject(M3u8Parse.ParserError, 'No line data');
+        expect(() => M3u8Parse('')).to.throw(M3u8Parse.ParserError, 'No line data');
     });
 
     it('should parse a valid VOD file', async () => {
