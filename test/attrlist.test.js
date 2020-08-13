@@ -79,12 +79,13 @@ describe('AttrList', () => {
             ['string', 'hi'],
             ['float', 0.42],
             ['signed-float', -0.42],
-            ['resolution', { width: 4, height: 2 }]
+            ['resolution', { width: 4, height: 2 }],
+            ['byterange', { offset: 10, length: 20 }]
         ];
 
         before(({ context }) => {
 
-            context.list = new AttrList('BIGINT=42,HEXINT=0x42,INT=42,HEXNO=0x42,FLOAT=0.42,SIGNED-FLOAT=-0.42,STRING="hi",ENUM=OK,RESOLUTION=4x2');
+            context.list = new AttrList('BIGINT=42,HEXINT=0x42,INT=42,HEXNO=0x42,FLOAT=0.42,SIGNED-FLOAT=-0.42,STRING="hi",ENUM=OK,RESOLUTION=4x2,BYTERANGE=20@10');
         });
 
         describe('#get()', () => {
@@ -255,6 +256,24 @@ describe('AttrList', () => {
             expect(new AttrList('RES=x').decimalResolution('RES')).to.equal(undefined);
         });
 
+        it('parses valid decimalByterange attribute', () => {
+
+            expect(new AttrList('RANGE=400@0').decimalByterange('RANGE')).to.equal({ offset: 0, length: 400 });
+            expect(new AttrList('RANGE=0@42').decimalByterange('RANGE')).to.equal({ offset: 42, length: 0 });
+            expect(new AttrList('RANGE=100').decimalByterange('RANGE')).to.equal({ offset: undefined, length: 100 });
+        });
+
+        it('handles invalid decimalByterange attribute', () => {
+
+            expect(new AttrList('RANGE=').decimalByterange('RANGE')).to.equal(undefined);
+            expect(new AttrList('RANGE=50.5').decimalByterange('RANGE')).to.equal(undefined);
+            expect(new AttrList('RANGE=-50').decimalByterange('RANGE')).to.equal(undefined);
+            expect(new AttrList('RANGE=50@').decimalByterange('RANGE')).to.equal(undefined);
+            expect(new AttrList('RANGE=50@-10').decimalByterange('RANGE')).to.equal(undefined);
+            expect(new AttrList('RANGE=@').decimalByterange('RANGE')).to.equal(undefined);
+            expect(new AttrList('RANGE=@0').decimalByterange('RANGE')).to.equal(undefined);
+        });
+
         it('parses multiple attributes', () => {
 
             const list = new AttrList('INT=42,HEX=0x42,FLOAT=0.42,STRING="hi",ENUM=OK,RES=4x2');
@@ -279,6 +298,7 @@ describe('AttrList', () => {
             expect(list.quotedString('STRING')).to.equal(undefined);
             expect(list.enumeratedString('ENUM')).to.equal(undefined);
             expect(list.decimalResolution('RES')).to.equal(undefined);
+            expect(list.decimalByterange('RANGE')).to.equal(undefined);
             expect(list.size).to.equal(0);
         });
 
@@ -391,6 +411,14 @@ describe('AttrList', () => {
 
             expect(encode('decimalResolution', {})).to.equal('NaNxNaN');
             expect(encode('decimalResolution', undefined)).to.equal('NaNxNaN');
+        });
+
+        it('encodes valid decimalByterange attribute', () => {
+
+            expect(encode('decimalByterange', { offset: 400, length: 200 })).to.equal('200@400');
+            expect(encode('decimalByterange', { length: 200 })).to.equal('200');
+            expect(encode('decimalByterange', {})).to.equal('0');
+            expect(encode('decimalByterange', undefined)).to.equal('0');
         });
 
         it('handles decimalInteger conversions', () => {
