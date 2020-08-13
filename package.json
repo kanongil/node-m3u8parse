@@ -16,15 +16,15 @@
   "author": "Gil Pedersen <gpdev@gpost.dk>",
   "license": "BSD-2-Clause",
   "engines": {
-    "node": ">=10.4.0"
+    "node": ">=12.12.0"
   },
   "dependencies": {
     "clone": "^2.1.2",
     "split": "^1.0.0"
   },
   "devDependencies": {
-    "@hapi/code": "^7.0.0",
-    "@hapi/lab": "^21.0.0",
+    "@hapi/code": "^8.0.2",
+    "@hapi/lab": "^23.0.0",
     "readable-stream": "^3.3.0"
   },
   "repository": {

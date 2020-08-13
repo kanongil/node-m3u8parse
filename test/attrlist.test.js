@@ -5,7 +5,6 @@ const Lab = require('@hapi/lab');
 
 const { AttrList } = require('..');
 
-/* globals BigInt */
 
 // Test shortcuts
 
@@ -241,8 +240,8 @@ describe('AttrList', () => {
 
         it('parses valid decimalResolution attribute', () => {
 
-            expect(new AttrList('RES=400x200').decimalResolution('RES')).to.equal({ width:400, height:200 });
-            expect(new AttrList('RES=0x0').decimalResolution('RES')).to.equal({ width:0, height:0 });
+            expect(new AttrList('RES=400x200').decimalResolution('RES')).to.equal({ width: 400, height: 200 });
+            expect(new AttrList('RES=0x0').decimalResolution('RES')).to.equal({ width: 0, height: 0 });
         });
 
         it('handles invalid decimalResolution attribute', () => {
@@ -282,7 +281,7 @@ describe('AttrList', () => {
             expect(list.decimalFloatingPoint('FLOAT')).to.equal(0.42);
             expect(list.quotedString('STRING')).to.equal('hi');
             expect(list.enumeratedString('ENUM')).to.equal('OK');
-            expect(list.decimalResolution('RES')).to.equal({ width:4, height:2 });
+            expect(list.decimalResolution('RES')).to.equal({ width: 4, height: 2 });
             expect(list.size).to.equal(6);
         });
 
@@ -403,8 +402,8 @@ describe('AttrList', () => {
 
         it('encodes valid decimalResolution attribute', () => {
 
-            expect(encode('decimalResolution', { width:400, height:200 })).to.equal('400x200');
-            expect(encode('decimalResolution', { width:0, height:0 })).to.equal('0x0');
+            expect(encode('decimalResolution', { width: 400, height: 200 })).to.equal('400x200');
+            expect(encode('decimalResolution', { width: 0, height: 0 })).to.equal('0x0');
         });
 
         it('handles invalid decimalResolution attribute', () => {

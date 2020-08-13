@@ -349,20 +349,20 @@ describe('M3U8Playlist', () => {
 
         it('should return correct value for numbers in range', () => {
 
-            expect(testIndex.keysForSeqNo(7794)).to.equal([new M3u8Parse.AttrList({ method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e72' })]);
-            expect(testIndex.keysForSeqNo(7795)).to.equal([new M3u8Parse.AttrList({ method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e73' })]);
-            expect(testIndex.keysForSeqNo(7796)).to.equal([new M3u8Parse.AttrList({ method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e74' })]);
-            expect(testIndex.keysForSeqNo(7797)).to.equal([new M3u8Parse.AttrList({ method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x1e75' })]);
+            expect(testIndex.keysForSeqNo(7794)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e72' })]);
+            expect(testIndex.keysForSeqNo(7795)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e73' })]);
+            expect(testIndex.keysForSeqNo(7796)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e74' })]);
+            expect(testIndex.keysForSeqNo(7797)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x1e75' })]);
 
-            expect(testIndexSingle.keysForSeqNo(300)).to.equal([new M3u8Parse.AttrList({ method:'SAMPLE-AES', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1234' })]);
+            expect(testIndexSingle.keysForSeqNo(300)).to.equal([new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1234' })]);
             expect(testIndexSingle.keysForSeqNo(301)).to.not.exist();
             expect(testIndexSingle.keysForSeqNo(302)).to.equal([
-                new M3u8Parse.AttrList({ method:'SAMPLE-AES', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x4321' }),
-                new M3u8Parse.AttrList({ method:'SAMPLE-AES', uri:'"skd://key53"', keyformat:'"com.apple.streamingkeydelivery"', keyformatversions:'"1"' })
+                new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x4321' }),
+                new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"skd://key53"', keyformat: '"com.apple.streamingkeydelivery"', keyformatversions: '"1"' })
             ]);
             expect(testIndexSingle.keysForSeqNo(303)).to.equal([
-                new M3u8Parse.AttrList({ method:'SAMPLE-AES', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x4322' }),
-                new M3u8Parse.AttrList({ method:'SAMPLE-AES', uri:'"skd://key53"', keyformat:'"com.apple.streamingkeydelivery"', keyformatversions:'"1"' })
+                new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x4322' }),
+                new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"skd://key53"', keyformat: '"com.apple.streamingkeydelivery"', keyformatversions: '"1"' })
             ]);
         });
 
@@ -392,10 +392,10 @@ describe('M3U8Playlist', () => {
 
         it('should return correct values', () => {
 
-            expect(testIndexSingle.byterangeForSeqNo(300)).to.equal({ length:300000, offset:5000000 });
-            expect(testIndexSingle.byterangeForSeqNo(301)).to.equal({ length:300000, offset:0 });
-            expect(testIndexSingle.byterangeForSeqNo(302)).to.equal({ length:300000, offset:300000 });
-            expect(testIndexSingle.byterangeForSeqNo(303)).to.equal({ length:300000, offset:600000 });
+            expect(testIndexSingle.byterangeForSeqNo(300)).to.equal({ length: 300000, offset: 5000000 });
+            expect(testIndexSingle.byterangeForSeqNo(301)).to.equal({ length: 300000, offset: 0 });
+            expect(testIndexSingle.byterangeForSeqNo(302)).to.equal({ length: 300000, offset: 300000 });
+            expect(testIndexSingle.byterangeForSeqNo(303)).to.equal({ length: 300000, offset: 600000 });
         });
     });
 
@@ -424,11 +424,11 @@ describe('M3U8Playlist', () => {
             expect(testIndex.getSegment(7795, true).program_time).to.equal(new Date('2013-10-29T11:34:15.833Z'));
             expect(testIndex.getSegment(7796, true).program_time).to.equal(new Date('2013-10-29T11:34:30.833Z'));
             expect(testIndex.getSegment(7797, true).program_time).to.equal(new Date('2013-10-29T11:34:44.000Z'));
-            expect(testIndex.getSegment(7794, true).keys).to.equal([new M3u8Parse.AttrList({ method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e72' })]);
-            expect(testIndex.getSegment(7795, true).keys).to.equal([new M3u8Parse.AttrList({ method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e73' })]);
-            expect(testIndex.getSegment(7796, true).keys).to.equal([new M3u8Parse.AttrList({ method:'AES-128', uri:'"https://priv.example.com/key.php?r=52"', iv:'0x1e74' })]);
-            expect(testIndex.getSegment(7797, true).keys).to.equal([new M3u8Parse.AttrList({ method:'AES-128', uri:'"https://priv.example.com/key.php?r=53"', iv:'0x1e75' })]);
-            expect(testIndexSingle.getSegment(302, true).byterange).to.equal({ length:300000, offset:300000 });
+            expect(testIndex.getSegment(7794, true).keys).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e72' })]);
+            expect(testIndex.getSegment(7795, true).keys).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e73' })]);
+            expect(testIndex.getSegment(7796, true).keys).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e74' })]);
+            expect(testIndex.getSegment(7797, true).keys).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x1e75' })]);
+            expect(testIndexSingle.getSegment(302, true).byterange).to.equal({ length: 300000, offset: 300000 });
             expect(testIndex.getSegment(7794, true).map).to.not.exist();
             expect(testIndex.getSegment(7797, true).map).to.not.exist();
         });
