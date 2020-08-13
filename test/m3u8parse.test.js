@@ -432,6 +432,38 @@ describe('M3U8Playlist', () => {
             expect(testIndex.getSegment(7794, true).map).to.not.exist();
             expect(testIndex.getSegment(7797, true).map).to.not.exist();
         });
+
+        it('should resolve relative byteranges in parts', () => {
+
+            const index = new M3u8Parse.M3U8Playlist({
+                segments: [
+                    new M3u8Parse.M3U8Segment({
+                        parts: [
+                            new M3u8Parse.AttrList('URI="file1",BYTERANGE=100@50'),
+                            new M3u8Parse.AttrList('URI="file1",BYTERANGE=150'),
+                            new M3u8Parse.AttrList('URI="file1",BYTERANGE=50'),
+                            new M3u8Parse.AttrList('URI="file1",BYTERANGE=100@500'),
+                            new M3u8Parse.AttrList('URI="file2",BYTERANGE=150'),
+                            new M3u8Parse.AttrList('URI="file2",BYTERANGE=100'),
+                            new M3u8Parse.AttrList('URI="file3"'),
+                            new M3u8Parse.AttrList('URI="file3",BYTERANGE=150')
+                        ]
+                    })
+                ]
+            });
+
+            expect(index.getSegment(0, true)).to.be.an.instanceof(M3u8Parse.M3U8Segment);
+            expect(index.getSegment(0, true).parts).to.equal([
+                new M3u8Parse.AttrList({ uri: '"file1"', byterange: '100@50' }),
+                new M3u8Parse.AttrList({ uri: '"file1"', byterange: '150@150' }),
+                new M3u8Parse.AttrList({ uri: '"file1"', byterange: '50@300' }),
+                new M3u8Parse.AttrList({ uri: '"file1"', byterange: '100@500' }),
+                new M3u8Parse.AttrList({ uri: '"file2"', byterange: '150' }),
+                new M3u8Parse.AttrList({ uri: '"file2"', byterange: '100' }),
+                new M3u8Parse.AttrList({ uri: '"file3"' }),
+                new M3u8Parse.AttrList({ uri: '"file3"', byterange: '150' })
+            ]);
+        });
     });
 
     describe('#rewriteUris()', () => {
