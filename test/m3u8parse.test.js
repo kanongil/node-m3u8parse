@@ -5,7 +5,7 @@ const Path = require('path');
 
 const Code = require('@hapi/code');
 const Lab = require('@hapi/lab');
-const M3u8Parse = require('..');
+const M3u8Parse = require('../lib');
 
 
 const fixtureDir = Path.join(__dirname, 'fixtures');

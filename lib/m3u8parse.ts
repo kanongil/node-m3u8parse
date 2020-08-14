@@ -1,18 +1,17 @@
-'use strict';
-
 const Assert = require('assert');
 const Stream = require('stream');
 
+let Debug;
 try {
-    var Debug = require('debug');
+    Debug = require('debug');
 }
 catch (err) {}
 
 const Clone = require('clone');
 const Split = require('split');
 
-const AttrList = require('./attrlist');
-const { M3U8Playlist, M3U8Segment } = require('./m3u8playlist');
+import AttrList from './attrlist';
+import { M3U8Playlist, M3U8Segment } from './m3u8playlist';
 
 
 const internals = {
@@ -20,16 +19,23 @@ const internals = {
 };
 
 
-exports = module.exports = function (input, options = {}) {
+interface ParserOptions {
+    extensions?: { [K: string]: boolean }
+}
 
-    const m3u8 = new exports.M3U8Playlist();
+export default function (input: string | Buffer, options?: ParserOptions): M3U8Playlist;
+export default function (input: typeof Stream | unknown, options?: ParserOptions): Promise<M3U8Playlist>;
+
+export default function (input: typeof Stream | string | Buffer, options: ParserOptions = {}) {
+
+    const m3u8 = new M3U8Playlist();
     let line_no = 0;
-    const deferred = {};
-    let meta = {};
+    const deferred : { promise: Promise<undefined>, resolve: Function, reject: Function } = {} as any;
+    let meta : M3U8Segment & { info?: AttrList } = {} as any;
 
     Assert.ok(input || input === '', 'Input must be a stream, string, or buffer');
 
-    const ReportError = (err) => {
+    const ReportError = (err? : Error) => {
 
         if (deferred.promise) {
             return deferred.reject(err);
@@ -40,12 +46,12 @@ exports = module.exports = function (input, options = {}) {
 
     const extensions = Clone(options.extensions || {});
 
-    const ParseExt = function (cmd, arg = null) {
+    const ParseExt = function (cmd: string, arg : string | null = null) {
 
         // Parse vendor extensions
 
         if (cmd in extensions) {
-            const extObj = options.extensions[cmd] ? meta : m3u8;
+            const extObj = extensions[cmd] ? meta : m3u8;
             if (!extObj.vendor) {
                 extObj.vendor = [];
             }
@@ -59,18 +65,18 @@ exports = module.exports = function (input, options = {}) {
         }
 
         internals.debug('parsing ext', cmd, arg);
-        extParser[cmd](arg);
+        extParser[cmd](arg!);
 
         return true;
     };
 
-    const ParseLine = function (line) {
+    const ParseLine = function (line: string) {
 
         line_no += 1;
 
         if (line_no === 1) {
             if (line !== '#EXTM3U') {
-                return ReportError(new exports.ParserError('Missing required #EXTM3U header', line, line_no));
+                return ReportError(new ParserError('Missing required #EXTM3U header', line, line_no));
             }
 
             return true;
@@ -95,23 +101,23 @@ exports = module.exports = function (input, options = {}) {
         }
         else if (m3u8.master) {
             meta.uri = line;
-            m3u8.variants.push(meta);
-            meta = {};
+            m3u8.variants.push({ uri: meta.uri, info: meta.info }); // FIXME: ??
+            meta = {} as any;
         }
         else {
             if (!('duration' in meta)) {
-                return ReportError(new exports.ParserError('Missing #EXTINF before media file URI', line, line_no));
+                return ReportError(new ParserError('Missing #EXTINF before media file URI', line, line_no));
             }
 
-            m3u8.segments.push(new exports.M3U8Segment(line, meta, m3u8.version));
-            meta = {};
+            m3u8.segments.push(new M3U8Segment(line, meta, m3u8.version));
+            meta = {} as any;
         }
 
         return true;
     };
 
     // TODO: add more validation logic
-    const extParser = {
+    const extParser : { [ext: string]: (arg: string) => void } = {
         '#EXT-X-VERSION': (arg) => {
 
             m3u8.version = parseInt(arg, 10);
@@ -151,12 +157,12 @@ exports = module.exports = function (input, options = {}) {
 
         '#EXTINF': (arg) => {
 
-            const n = arg.split(',');
-            meta.duration = parseFloat(n.shift());
-            meta.title = n.join(',');
+            const [duration, ...title] = arg.split(',');
+            meta.duration = parseFloat(duration);
+            meta.title = title.join(',');
 
             if (meta.duration <= 0) {
-                return ReportError(new exports.ParserError('Invalid duration', '#EXTINF:' + arg, line_no));
+                return ReportError(new ParserError('Invalid duration', '#EXTINF:' + arg, line_no));
             }
         },
         '#EXT-X-KEY': (arg) => {
@@ -185,15 +191,15 @@ exports = module.exports = function (input, options = {}) {
         // master v4 since master streams are not required to specify version
         '#EXT-X-MEDIA': (arg) => {
 
-            const attrs = new AttrList(arg);
-            const id = attrs.quotedString('group-id') || '#';
+            const attrs : AttrList = new AttrList(arg);
+            const id = attrs.get('group-id', AttrList.Types.String) || '#';
 
-            let list = m3u8.groups.get(id);
+            let list: AttrList[] & { type?: string } | undefined = m3u8.groups.get(id);
             if (!list) {
                 list = [];
                 m3u8.groups.set(id, list);
                 if (id !== '#') {
-                    list.type = attrs.type;
+                    list.type = attrs.get('type');
                 }
             }
 
@@ -264,7 +270,7 @@ exports = module.exports = function (input, options = {}) {
         }
     };
 
-    for (const [ext, entry] of M3U8Playlist.metas.entries()) {
+    for (const [ext, entry] of M3U8Playlist._metas.entries()) {
         extParser['#EXT-X-' + ext] = (arg) => {
 
             (m3u8.meta[entry] = m3u8.meta[entry] || []).push(new AttrList(arg));
@@ -274,11 +280,11 @@ exports = module.exports = function (input, options = {}) {
     const Complete = function () {
 
         if (line_no === 0) {
-            return ReportError(new exports.ParserError('No line data', '', -1));
+            return ReportError(new ParserError('No line data', '', -1));
         }
 
         if (Object.keys(meta).length) {
-            m3u8.segments.push(new exports.M3U8Segment(undefined, meta, m3u8.version));    // Append a partial segment
+            m3u8.segments.push(new M3U8Segment(undefined, meta, m3u8.version));    // Append a partial segment
         }
 
         return deferred.promise ? deferred.resolve(m3u8) : m3u8;
@@ -317,27 +323,23 @@ exports = module.exports = function (input, options = {}) {
     }
 
     return Complete();
-};
+}
 
 
-exports.ParserError = class extends Error {
+export class ParserError extends Error {
 
-    constructor(msg, line, line_no, constr) {
+    line: string;
+    lineNumber: number;
+
+    constructor(msg: string, line: string, line_no: number, constr? : Function) {
 
         super();
 
-        Error.captureStackTrace(this, constr || this);
+        Error.captureStackTrace(this, constr || this.constructor);
         this.message = msg || 'Error';
         this.line = line;
         this.lineNumber = line_no;
     }
-};
+}
 
-exports.ParserError.prototype.name = 'Parser Error';
-
-exports.M3U8Playlist = M3U8Playlist;
-
-exports.M3U8Segment = M3U8Segment;
-
-exports.AttrList = AttrList;
-
+ParserError.prototype.name = 'Parser Error';

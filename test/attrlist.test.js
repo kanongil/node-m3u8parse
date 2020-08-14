@@ -3,7 +3,7 @@
 const Code = require('@hapi/code');
 const Lab = require('@hapi/lab');
 
-const { AttrList } = require('..');
+const { AttrList } = require('../lib');
 
 
 // Test shortcuts
