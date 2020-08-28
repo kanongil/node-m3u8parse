@@ -1,6 +1,6 @@
 {
   "name": "m3u8parse",
-  "version": "2.4.0",
+  "version": "3.0.0-beta.1",
   "description": "Structural parsing of Apple HTTP Live Streaming .m3u8 format",
   "main": "lib",
   "types": "lib/index.d.ts",
