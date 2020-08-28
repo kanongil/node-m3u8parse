@@ -5,7 +5,7 @@
   "main": "lib",
   "types": "lib/index.d.ts",
   "scripts": {
-    "clean": "rm lib/*.{js,d.ts}",
+    "clean": "rm -f lib/*.{js,d.ts}",
     "postpack": "npm run clean",
     "prepack": "tsc",
     "test": "lab -c -L",
