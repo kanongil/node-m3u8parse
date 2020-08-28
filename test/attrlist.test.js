@@ -3,7 +3,7 @@
 const Code = require('@hapi/code');
 const Lab = require('@hapi/lab');
 
-const { AttrList } = require('../lib');
+const { AttrList } = require('..');
 
 
 // Test shortcuts
@@ -342,11 +342,15 @@ describe('AttrList', () => {
 
     describe('encoding', () => {
 
+        /**
+         * @param {keyof AttrList} method
+         * @param {*} value
+         */
         const encode = function (method, value) {
 
             const list = new AttrList();
             list[method]('VALUE', value);
-            return list.get('value', 'enum');
+            return list.get('value', AttrList.Types.Enum);
         };
 
         it('encodes valid decimalInteger attribute', () => {

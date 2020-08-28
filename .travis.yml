@@ -5,3 +5,10 @@ node_js:
   - "12"
   - "14"
   - "node"
+
+cache:
+  npm: false
+
+script:
+  npm test
+  npm test-js

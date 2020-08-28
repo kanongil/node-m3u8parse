@@ -1,4 +1,3 @@
 *
-!lib/**
-!dist/**
-!.npmignore
+!lib/**.js
+!lib/**.d.ts

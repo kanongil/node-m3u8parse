@@ -56,7 +56,7 @@ export default function (input: typeof Stream | string | Buffer, options: Parser
                 extObj.vendor = [];
             }
 
-            extObj.vendor.push([cmd, arg]);
+            (extObj.vendor as [string, string | null][]).push([cmd, arg]);
             return true;
         }
 

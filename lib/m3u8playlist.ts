@@ -7,6 +7,13 @@ import AttrList from './attrlist';
 
 type Msn = number;
 
+type Byterange = {
+    offset: number,
+    length: number
+};
+
+type UriMapFunction = (uri: string | undefined, type: string, data: unknown) => string | undefined;
+
 
 const internals = {
     Map: class JSONableMap extends Map {
@@ -73,6 +80,35 @@ const internals = {
         }
 
         return dst;
+    },
+
+    rewriteAttr(mapFn: UriMapFunction, attrs: AttrList | null | undefined, type: string) {
+
+        const { isStringish } = internals;
+        if (attrs?.has('uri')) {
+            const newUri = mapFn(attrs.get('uri', AttrList.Types.String), type, attrs);
+            if (isStringish(newUri)) {
+                attrs.set('uri', newUri, AttrList.Types.String);
+            }
+        }
+    },
+
+    rewriteAttrs(mapFn: UriMapFunction, list: AttrList[] | null | undefined, type: string) {
+
+        const { rewriteAttr } = internals;
+        for (const item of list || []) {
+            rewriteAttr(mapFn, item, type);
+        }
+    },
+
+    rewriteMappedAttrs(mapFn: UriMapFunction, map: Map<string, AttrList[]>, type: string) {
+
+        const { rewriteAttrs } = internals;
+        if (map) {
+            for (const list of map.values()) {
+                rewriteAttrs(mapFn, list, type);
+            }
+        }
     }
 };
 
@@ -104,8 +140,26 @@ interface Meta {
 
 export class M3U8Playlist {
 
-    public static Type = PlaylistType;
-    public static _metas = new Map(Object.entries(ArrayMetas));
+    public static readonly Type = PlaylistType;
+    public static readonly _metas = new Map(Object.entries(ArrayMetas));
+
+    public static castAsMaster(index: M3U8Playlist) {
+
+        if (!index.master) {
+            throw new Error('Cannot cast a media playlist');
+        }
+
+        return index as MasterPlaylist;
+    }
+
+    public static castAsMedia(index: M3U8Playlist) {
+
+        if (index.master) {
+            throw new Error('Cannot cast a master playlist');
+        }
+
+        return index as MediaPlaylist;
+    }
 
     master: boolean;
     version: number;
@@ -131,15 +185,16 @@ export class M3U8Playlist {
     server_control?: AttrList;
     part_info?: AttrList;
 
-    vendor?: [string, string | null][];
+    vendor?: Iterable<[string, string | null]>;
 
-    constructor(obj?: M3U8Playlist) {
+    constructor(obj?: M3U8Playlist | MasterPlaylist | MediaPlaylist) {
 
         obj = (obj! || {}) as M3U8Playlist;
 
         this.master = obj.master || false;
 
-        // initialize to default values
+        // Initialize to default values
+
         this.version = obj.version || 1; // V1
         this.allow_cache = !(obj.allow_cache === false);
         this.i_frames_only = obj.i_frames_only || false; // V4
@@ -156,7 +211,8 @@ export class M3U8Playlist {
             this.segments = obj.segments.map((segment) => new M3U8Segment(segment));
         }
 
-        // for master streams
+        // For master streams
+
         this.variants = Clone(obj.variants) || [];
         for (const variant of this.variants) {
             if (variant.info) {
@@ -171,7 +227,7 @@ export class M3U8Playlist {
         this.data = internals.cloneAttrMap(obj.data); // V7
         this.session_keys = internals.cloneAttrArray(obj.session_keys); // V7
 
-        this.meta = {};
+        this.meta = Object.create(null);
         if (obj.meta) {
             if (obj.meta.skip) {
                 this.meta.skip = new AttrList(obj.meta.skip);
@@ -197,18 +253,13 @@ export class M3U8Playlist {
         // Custom vendor extensions
 
         if (obj.vendor) {
-            if (Array.isArray(obj.vendor)) {
-                this.vendor = Clone(obj.vendor);
+            if (typeof obj.vendor[Symbol.iterator] !== 'function') {
+                // Convert from old style serialized format
+
+                this.vendor = Object.entries(obj.vendor as unknown as { [entry: string]: string });
             }
             else {
-                // convert from old style serialized format
-
-                this.vendor = [];
-
-                for (const entry in obj.vendor as { [entry: string]: string}) {
-                    const value = obj.vendor[entry];
-                    this.vendor.push([entry, Clone(value)]);
-                }
+                this.vendor = Clone(obj.vendor);
             }
         }
     }
@@ -263,16 +314,42 @@ export class M3U8Playlist {
         return this.first_seq_no + i;
     }
 
-    lastSeqNo() : Msn {
+    lastSeqNo(includePartial = true) : Msn {
 
-        return this.first_seq_no + this.segments.length - 1;
+        const msn = this.first_seq_no + this.segments.length - 1;
+        return includePartial ? msn : msn - +this.getSegment(msn)!.isPartial();
     }
 
-    // return whether the seqNo is in the index
-    isValidSeqNo(msn: Msn | string | bigint) {
+    // return whether the msn (and part) is in the index
+    isValidSeqNo(msn: Msn | string | bigint, part?: number) : boolean {
 
         msn = internals.tryBigInt(msn)!;
-        return (msn >= BigInt(this.first_seq_no)) && (msn <= BigInt(this.lastSeqNo()));
+
+        if (msn < BigInt(this.first_seq_no)) {
+            return false;
+        }
+
+        const lastMsn = BigInt(this.lastSeqNo(true));
+        if (msn > lastMsn) {
+            return false;
+        }
+
+        if (msn !== lastMsn) {
+            return true;
+        }
+
+        // It has come down to the contents of the last segment
+
+        if (part !== undefined) {
+            if (part < 0) {      // Any negative part is assumed to be from the previous segment
+                return this.isValidSeqNo(msn - BigInt(1));
+            }
+
+            const { parts = { length: -1 } } = this.getSegment(lastMsn)!;
+            return part <= parts.length;
+        }
+
+        return !this.getSegment(lastMsn)!.isPartial();
     }
 
     dateForSeqNo(msn: Msn | bigint) : Date | null {
@@ -340,7 +417,7 @@ export class M3U8Playlist {
         return firstValid.msn;
     }
 
-    keysForSeqNo(msn: Msn | bigint) {
+    keysForSeqNo(msn: Msn | bigint) : AttrList[] | undefined {
 
         msn = internals.tryBigInt(msn)!;
 
@@ -359,7 +436,7 @@ export class M3U8Playlist {
                 if (!keys.has(keyformat)) {
                     const keymethod = key.get('method');
                     if (keymethod === 'NONE') {
-                        return null;
+                        return undefined;
                     }
 
                     keys.set(keyformat, new AttrList(key));
@@ -372,29 +449,29 @@ export class M3U8Playlist {
         }
 
         const identity = keys.get('identity');
-        if (identity && !identity.has('iv')) {
-            identity.set('iv', initialMsn, AttrList.Types.HexInt);
+        if (!identity?.has('iv')) {
+            identity?.set('iv', initialMsn, AttrList.Types.HexInt);
         }
 
-        return keys.size > 0 ? [...keys.values()] : null;
+        return keys.size > 0 ? [...keys.values()] : undefined;
     }
 
-    byterangeForSeqNo(msn: Msn | bigint) {
+    byterangeForSeqNo(msn: Msn | bigint) : Byterange | undefined {
 
         msn = internals.tryBigInt(msn)!;
         if (msn === undefined) {
-            return null;
+            return undefined;
         }
 
         const segmentIdx = Number(msn - BigInt(this.first_seq_no));
         const segment = this.segments[segmentIdx];
         if (!segment || !segment.byterange) {
-            return null;
+            return undefined;
         }
 
         const length = parseInt(segment.byterange.length as unknown as string, 10);
         if (isNaN(length)) {
-            return null;
+            return undefined;
         }
 
         let offset = parseInt(segment.byterange.offset as unknown as string, 10);
@@ -436,6 +513,10 @@ export class M3U8Playlist {
         return this._lastSegmentProperty('map', msn, ({ discontinuity } : M3U8Segment) => !!discontinuity); // abort on discontinuity
     }
 
+    getSegment(msn: Msn | bigint): M3U8Segment | null;
+    getSegment(msn: Msn | bigint, independent: true): M3U8IndependentSegment | null;
+    getSegment(msn: Msn | bigint, independent: any): M3U8Segment | null;
+
     getSegment(msn: Msn | bigint, independent = false) : M3U8Segment | null {
 
         msn = internals.tryBigInt(msn)!;
@@ -470,7 +551,7 @@ export class M3U8Playlist {
                             part.get('uri') === lastPart.get('uri')) {
 
                             const lastByterange = lastPart.get('byterange', AttrList.Types.Byterange);
-                            if (lastByterange && lastByterange.offset !== undefined) {
+                            if (lastByterange?.offset !== undefined) {
                                 byterange.offset = lastByterange.offset + lastByterange.length;
                                 part.set('byterange', byterange, AttrList.Types.Byterange);
                             }
@@ -487,64 +568,29 @@ export class M3U8Playlist {
         return segment;
     }
 
-    rewriteUris(mapFn : (uri : string | undefined, type : string, data : unknown) => string) {
+    rewriteUris(mapFn: UriMapFunction) : this {
 
-        const rewriteAttr = (attrs: AttrList | null | undefined, type : string) => {
-
-            if (attrs && attrs.has('uri')) {
-                const newUri = mapFn(attrs.get('uri', AttrList.Types.String), type, attrs);
-                if (internals.isStringish(newUri)) {
-                    attrs.set('uri', newUri, AttrList.Types.String);
-                }
-            }
-        };
-
-        const rewriteAttrs = (list: AttrList[] | null | undefined, type: string) => {
-
-            for (const item of list || []) {
-                rewriteAttr(item, type);
-            }
-        };
-
-        const rewriteMappedAttrs = (map: Map<string, AttrList[]>, type: string) => {
-
-            if (map) {
-                for (const list of map.values()) {
-                    rewriteAttrs(list, type);
-                }
-            }
-        };
+        const { rewriteAttrs, rewriteMappedAttrs } = internals;
 
         for (const variant of this.variants) {
             const newUri = mapFn(variant.uri, 'variant', variant);
             if (internals.isStringish(newUri)) {
-                variant.uri = newUri;
+                variant.uri = newUri!;
             }
         }
 
-        rewriteAttrs(this.iframes, 'iframe');
-        rewriteMappedAttrs(this.groups, 'group');
-        rewriteMappedAttrs(this.data, 'data');
-        rewriteAttrs(this.session_keys, 'session-key');
-
-        // Update segments
+        rewriteAttrs(mapFn, this.iframes, 'iframe');
+        rewriteMappedAttrs(mapFn, this.groups, 'group');
+        rewriteMappedAttrs(mapFn, this.data, 'data');
+        rewriteAttrs(mapFn, this.session_keys, 'session-key');
 
         for (const segment of this.segments) {
-            rewriteAttrs(segment.keys, 'segment-key');
-            rewriteAttr(segment.map, 'segment-map');
-            rewriteAttrs(segment.parts, 'segment-part');
-
-            if (internals.isStringish(segment.uri)) {
-                const newUri = mapFn(segment.uri, 'segment', segment);
-                if (internals.isStringish(newUri)) {
-                    segment.uri = newUri;
-                }
-            }
+            segment.rewriteUris(mapFn);
         }
 
         if (this.meta) {
-            rewriteAttrs(this.meta.preload_hints, 'preload-hint');
-            rewriteAttrs(this.meta.rendition_reports, 'rendition-report');
+            rewriteAttrs(mapFn, this.meta.preload_hints, 'preload-hint');
+            rewriteAttrs(mapFn, this.meta.rendition_reports, 'rendition-report');
         }
 
         return this;
@@ -672,6 +718,24 @@ export class M3U8Playlist {
 }
 
 
+type SharedProperties = 'master' | 'version' | 'independent_segments' | 'start' | 'defines' | 'vendor';
+type DeprecatedProperties = 'allow_cache';
+type MasterPlaylistProperties = 'variants' | 'groups' | 'iframes' | 'data' | 'session_keys';
+type MediaPlaylistProperties = 'segments' | 'meta' |
+                               'target_duration' | 'first_seq_no' | 'discontinuity_sequence' | 'ended' | 'type' |
+                               'i_frames_only' | 'part_info' | 'server_control';
+
+type AllPlaylistMethods = Exclude<keyof M3U8Playlist, SharedProperties | DeprecatedProperties | MasterPlaylistProperties | MediaPlaylistProperties | 'toString'>
+
+export type MasterPlaylist = Pick<M3U8Playlist, SharedProperties | MasterPlaylistProperties> & {
+    readonly master: true,
+    rewriteUris(...args: Parameters<M3U8Playlist['rewriteUris']>) : MasterPlaylist
+}
+export type MediaPlaylist = Pick<M3U8Playlist, SharedProperties | AllPlaylistMethods | MediaPlaylistProperties> & {
+    readonly master: false,
+    rewriteUris(...args: Parameters<M3U8Playlist['rewriteUris']>): MediaPlaylist
+}
+
 export class M3U8Segment {
 
     duration?: number;
@@ -680,13 +744,13 @@ export class M3U8Segment {
     discontinuity: boolean;
 
     program_time? : Date | null;
-    keys?: AttrList[] | null;
-    byterange?: { offset? : number, length : number } | null;
+    keys?: AttrList[];
+    byterange?: { offset? : number, length : number };
     map?: AttrList;
     gap?: boolean;
     parts?: AttrList[];
 
-    vendor?: [string, string | null][];
+    vendor?: Iterable<[string, string | null]>;
 
     constructor();
     constructor(obj: unknown);
@@ -738,7 +802,14 @@ export class M3U8Segment {
 
         // custom vendor extensions
         if (meta.vendor) {
-            this.vendor = Clone(meta.vendor);
+            if (typeof meta.vendor[Symbol.iterator] !== 'function') {
+                // Convert from old style serialized format
+
+                this.vendor = Object.entries(meta.vendor as unknown as { [entry: string]: string });
+            }
+            else {
+                this.vendor = Clone(meta.vendor);
+            }
         }
     }
 
@@ -746,6 +817,24 @@ export class M3U8Segment {
 
         const full = (this.uri || this.uri === '') && this.duration! >= 0;
         return !full;
+    }
+
+    rewriteUris(mapFn: UriMapFunction): this {
+
+        const { rewriteAttrs, rewriteAttr } = internals;
+
+        rewriteAttrs(mapFn, this.keys, 'segment-key');
+        rewriteAttr(mapFn, this.map, 'segment-map');
+        rewriteAttrs(mapFn, this.parts, 'segment-part');
+
+        if (internals.isStringish(this.uri)) {
+            const newUri = mapFn(this.uri, 'segment', this);
+            if (internals.isStringish(newUri)) {
+                this.uri = newUri;
+            }
+        }
+
+        return this;
     }
 
     toString() : string {
@@ -769,7 +858,7 @@ export class M3U8Segment {
 
         m3u8.ext('MAP', stringifyAttrs(this.map));
 
-        if (this.byterange && (this.byterange.length || this.byterange.length === 0)) {
+        if (this.byterange?.length || this.byterange?.length === 0) {
             let range = '' + this.byterange.length;
             if (this.byterange.offset || this.byterange.offset === 0) {
                 range += '@' + this.byterange.offset;
@@ -809,6 +898,11 @@ export class M3U8Segment {
         return m3u8.toString();
     }
 }
+
+
+export type M3U8IndependentSegment = M3U8Segment & {
+    byterange?: Required<Byterange>
+};
 
 
 class PlaylistWriter {

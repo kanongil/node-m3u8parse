@@ -2,12 +2,12 @@ interface Token {
     toUpperCase() : string
 }
 
-interface Resolution {
+type Resolution = {
     width: number,
     height: number
 }
 
-interface Byterange {
+type Byterange = {
     offset?: number,
     length: number
 }
@@ -40,9 +40,9 @@ const tokenify = function (attr: string) : Token {
 
 export default class AttrList extends Map<Token, unknown> {
 
-    static Types = AttrType;
+    static readonly Types = AttrType;
 
-    constructor(attrs: AttrList | string | { [key: string]: string } | Map<string,unknown> | Array<Array<string>>) {
+    constructor(attrs?: AttrList | string | { [key: string]: string } | Map<string,unknown> | Array<Array<string>>) {
 
         super();
 

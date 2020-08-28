@@ -1,9 +1,7 @@
 'use strict';
 
 module.exports = {
-    transform: 'node_modules/lab-transform-typescript',
+    transform: require.resolve('lab-transform-typescript'),
     sourcemaps: true,
-    coverage: true,
-    threshold: 90,
-    false: true
+    threshold: 90
 };

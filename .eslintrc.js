@@ -3,7 +3,7 @@
 module.exports = {
     root: true,
     extends: [
-        '@hapi/eslint-config-hapi',
+        '@hapi/hapi',
         'plugin:@typescript-eslint/eslint-recommended'
     ],
     plugins: [
@@ -13,14 +13,11 @@ module.exports = {
         ecmaVersion: 2019
     },
     ignorePatterns: ['/dist/**'],
-    overrides: [
-        {
-            files: ['**/*.ts'],
-            parser: '@typescript-eslint/parser',
-            parserOptions: {
-                sourceType: 'module'
-            }
+    overrides: [{
+        files: ['lib/**/*.ts'],
+        parser: '@typescript-eslint/parser',
+        parserOptions: {
+            sourceType: 'module'
         }
-    ]
-
+    }]
 };
