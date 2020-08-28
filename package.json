@@ -9,6 +9,7 @@
     "postpack": "npm run clean",
     "prepack": "tsc",
     "test": "lab -c -L",
+    "test-full": "npm test && npm run test-js",
     "test-cov-html": "lab -c -r html -o coverage.html",
     "test-js": "tsc && lab --transform '' --t 0 && npm run clean"
   },

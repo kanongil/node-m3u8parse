@@ -1,7 +1,6 @@
 language: node_js
 
 node_js:
-  - "10"
   - "12"
   - "14"
   - "node"
@@ -10,5 +9,4 @@ cache:
   npm: false
 
 script:
-  npm test
-  npm test-js
+  npm run test-full
