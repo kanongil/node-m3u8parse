@@ -96,7 +96,7 @@ export default class AttrList extends Map<Token, unknown> {
 
     set(attr: string, value: unknown, type: AttrType = AttrType.Enum) : this {
 
-        if (!value && value !== '') {
+        if (value === undefined || value === null) {
             this.delete(attr);
             return this;
         }

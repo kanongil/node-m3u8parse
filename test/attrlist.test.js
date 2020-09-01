@@ -126,6 +126,29 @@ describe('AttrList', () => {
                 expect(() => list.set('int', 42, 'b')).to.throw('Invalid type: b');
             });
 
+            it('handles falsy types', () => {
+
+                const attrs = new AttrList();
+
+                attrs.set('a', '');
+                expect(attrs.get('a')).to.equal('');
+
+                attrs.set('a', 0);
+                expect(attrs.get('a')).to.equal('0');
+
+                attrs.set('a', -0);
+                expect(attrs.get('a')).to.equal('0');
+
+                attrs.set('a', BigInt(0));
+                expect(attrs.get('a')).to.equal('0');
+
+                attrs.set('a', false);
+                expect(attrs.get('a')).to.equal('false');
+
+                attrs.set('a', Number.NaN);
+                expect(attrs.get('a')).to.equal('NaN');
+            });
+
             it('fails on non-string attributes', () => {
 
                 expect(() => new AttrList().set(undefined, 'a')).to.throw('Attributes must be a "string"');
