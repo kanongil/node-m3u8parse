@@ -1,16 +1,16 @@
 interface Token {
-    toUpperCase() : string
+    toUpperCase(): string;
 }
 
-type Resolution = {
-    width: number,
-    height: number
-}
+export type Resolution = {
+    width: number;
+    height: number;
+};
 
-type Byterange = {
-    offset?: number,
-    length: number
-}
+export type Byterange = {
+    offset?: number;
+    length: number;
+};
 
 enum AttrType {
     /* eslint-disable no-unused-vars */
@@ -27,7 +27,7 @@ enum AttrType {
     /* eslint-enable no-unused-vars */
 }
 
-const tokenify = function (attr: string) : Token {
+const tokenify = function (attr: string): Token {
 
     if (typeof attr !== 'string') {
         throw new TypeError('Attributes must be a "string"');
@@ -38,7 +38,7 @@ const tokenify = function (attr: string) : Token {
 
 // AttrList's are handled without any implicit knowledge of key/type mapping
 
-export default class AttrList extends Map<Token, unknown> {
+export class AttrList extends Map<Token, unknown> {
 
     static readonly Types = AttrType;
 
@@ -78,23 +78,24 @@ export default class AttrList extends Map<Token, unknown> {
     get(attr: string): string | undefined;
     get(attr: string, type?: AttrType.BigInt | AttrType.HexInt): BigInt;
     get(attr: string, type?: AttrType.Int | AttrType.HexNo | AttrType.Float | AttrType.SignedFloat): number;
+    // eslint-disable-next-line @typescript-eslint/unified-signatures
     get(attr: string, type?: AttrType.Enum | AttrType.String): string | undefined;
     get(attr: string, type?: AttrType.Resolution): Resolution | undefined;
     get(attr: string, type?: AttrType.Byterange): Byterange | undefined;
 
-    get(attr: string, type: AttrType = AttrType.Enum) : unknown {
+    get(attr: string, type: AttrType = AttrType.Enum): unknown {
 
         return this._applyType(type, attr) as any;
     }
 
-    set(attr: string, value: undefined, type?: AttrType): this;
+    set(attr: string, value: undefined | null): this;
     set(attr: string, value: BigInt | number, type?: AttrType.BigInt | AttrType.HexInt): this;
     set(attr: string, value: number, type?: AttrType.Int | AttrType.HexNo | AttrType.Float | AttrType.SignedFloat): this;
     set(attr: string, value: Resolution, type?: AttrType.Resolution): this;
     set(attr: string, value: Byterange, type?: AttrType.Byterange): this;
     set(attr: string, value: string | unknown, type?: AttrType.Enum | AttrType.String): this;
 
-    set(attr: string, value: unknown, type: AttrType = AttrType.Enum) : this {
+    set(attr: string, value: unknown, type: AttrType = AttrType.Enum): this {
 
         if (value === undefined || value === null) {
             this.delete(attr);
@@ -105,17 +106,17 @@ export default class AttrList extends Map<Token, unknown> {
         return this;
     }
 
-    has(attr: string) : boolean {
+    has(attr: string): boolean {
 
         return super.has(tokenify(attr));
     }
 
-    delete(attr: string) : boolean {
+    delete(attr: string): boolean {
 
         return super.delete(tokenify(attr));
     }
 
-    decimalInteger(attrName : string, value? : number | bigint) : bigint {
+    decimalInteger(attrName: string, value? : number | bigint): bigint {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
@@ -142,7 +143,7 @@ export default class AttrList extends Map<Token, unknown> {
         return intValue;
     }
 
-    hexadecimalInteger(attrName: string, value?: number | bigint) : bigint {
+    hexadecimalInteger(attrName: string, value?: number | bigint): bigint {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
@@ -170,7 +171,7 @@ export default class AttrList extends Map<Token, unknown> {
         return intValue;
     }
 
-    decimalIntegerAsNumber(attrName : string, value?: number | bigint) : number {
+    decimalIntegerAsNumber(attrName: string, value?: number | bigint): number {
 
         if (arguments.length > 1) {
             this.decimalInteger(attrName, value);
@@ -185,7 +186,7 @@ export default class AttrList extends Map<Token, unknown> {
         return intValue;
     }
 
-    hexadecimalIntegerAsNumber(attrName: string, value?: number | bigint) : number {
+    hexadecimalIntegerAsNumber(attrName: string, value?: number | bigint): number {
 
         if (arguments.length > 1) {
             this.hexadecimalInteger(attrName, value);
@@ -200,7 +201,7 @@ export default class AttrList extends Map<Token, unknown> {
         return intValue;
     }
 
-    decimalFloatingPoint(attrName : string, value?: number | bigint) : number {
+    decimalFloatingPoint(attrName: string, value?: number | bigint): number {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
@@ -210,7 +211,7 @@ export default class AttrList extends Map<Token, unknown> {
         return parseFloat(super.get(name) as string);
     }
 
-    signedDecimalFloatingPoint(attrName: string, value?: number | bigint) : number {
+    signedDecimalFloatingPoint(attrName: string, value?: number | bigint): number {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
@@ -220,7 +221,7 @@ export default class AttrList extends Map<Token, unknown> {
         return parseFloat(super.get(name) as string);
     }
 
-    quotedString(attrName : string, value? : unknown) : string | undefined {
+    quotedString(attrName: string, value? : unknown): string | undefined {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
@@ -231,7 +232,7 @@ export default class AttrList extends Map<Token, unknown> {
         return val ? val.slice(1, -1) : undefined;
     }
 
-    enumeratedString(attrName: string, value?: unknown) : string | undefined {
+    enumeratedString(attrName: string, value?: unknown): string | undefined {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
@@ -241,7 +242,7 @@ export default class AttrList extends Map<Token, unknown> {
         return super.get(name) as string | undefined;
     }
 
-    decimalResolution(attrName: string, value?: Resolution) : Resolution | undefined {
+    decimalResolution(attrName: string, value?: Resolution): Resolution | undefined {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
@@ -258,7 +259,7 @@ export default class AttrList extends Map<Token, unknown> {
     }
 
     /* unofficial type */
-    decimalByterange(attrName : string, value? : Byterange) : Byterange | undefined {
+    decimalByterange(attrName: string, value? : Byterange): Byterange | undefined {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
@@ -278,7 +279,7 @@ export default class AttrList extends Map<Token, unknown> {
         };
     }
 
-    toString() {
+    toString(): string {
 
         let res = '';
 
@@ -290,7 +291,8 @@ export default class AttrList extends Map<Token, unknown> {
         return res;
     }
 
-    toJSON() {
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    toJSON(): object {
 
         const obj = Object.create(null);
 
@@ -301,7 +303,7 @@ export default class AttrList extends Map<Token, unknown> {
         return obj;
     }
 
-    private _applyType<K extends AttrType>(type : K, attr : string, ...args : any[]) {
+    private _applyType<K extends AttrType>(type: K, attr: string, ...args: any[]) {
 
         switch (type) {
             case AttrType.BigInt: return this.decimalInteger(attr, ...args);

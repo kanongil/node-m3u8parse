@@ -1,5 +1,5 @@
-const Assert = require('assert');
-const Stream = require('stream');
+import { ok as assertOk } from 'assert';
+import { Stream } from 'stream';
 
 let Debug;
 try {
@@ -7,35 +7,36 @@ try {
 }
 catch (err) {}
 
-const Clone = require('clone');
-const Split = require('split');
+import Clone = require('clone');
+import Split = require('split');
 
-import AttrList from './attrlist';
+import { AttrList } from './attrlist';
 import { M3U8Playlist, M3U8Segment } from './m3u8playlist';
 
 
 const internals = {
-    debug: Debug ? Debug('m3u8parse') : function () {}
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    debug: (Debug ? Debug('m3u8parse') : function () {}) as (line: string, ...args: unknown[]) => void
 };
 
 
 interface ParserOptions {
-    extensions?: { [K: string]: boolean }
+    extensions?: { [K: string]: boolean };
 }
 
 export default function (input: string | Buffer, options?: ParserOptions): M3U8Playlist;
-export default function (input: typeof Stream | unknown, options?: ParserOptions): Promise<M3U8Playlist>;
+export default function (input: Stream, options?: ParserOptions): Promise<M3U8Playlist>;
 
-export default function (input: typeof Stream | string | Buffer, options: ParserOptions = {}) {
+export default function (input: Stream | string | Buffer, options: ParserOptions = {}): Promise<M3U8Playlist> | M3U8Playlist {
 
     const m3u8 = new M3U8Playlist();
     let line_no = 0;
-    const deferred : { promise: Promise<undefined>, resolve: Function, reject: Function } = {} as any;
-    let meta : M3U8Segment & { info?: AttrList } = {} as any;
+    const deferred: { promise: Promise<M3U8Playlist>; resolve: (val?: M3U8Playlist) => void; reject: (err: Error) => void } = {} as any;
+    let meta: M3U8Segment & { info?: AttrList } = {} as any;
 
-    Assert.ok(input || input === '', 'Input must be a stream, string, or buffer');
+    assertOk(input || input === '', 'Input must be a stream, string, or buffer');
 
-    const ReportError = (err? : Error) => {
+    const ReportError = (err: Error) => {
 
         if (deferred.promise) {
             return deferred.reject(err);
@@ -46,7 +47,7 @@ export default function (input: typeof Stream | string | Buffer, options: Parser
 
     const extensions = Clone(options.extensions || {});
 
-    const ParseExt = function (cmd: string, arg : string | null = null) {
+    const ParseExt = function (cmd: string, arg: string | null = null) {
 
         // Parse vendor extensions
 
@@ -83,8 +84,8 @@ export default function (input: typeof Stream | string | Buffer, options: Parser
         }
 
         if (!line.length) {
-            return true;
-        } // blank lines are ignored (3.1)
+            return true;        // blank lines are ignored (3.1)
+        }
 
         if (line[0] === '#') {
             const matches = /^(#EXT[^:]*)(:?.*)$/.exec(line);
@@ -117,7 +118,7 @@ export default function (input: typeof Stream | string | Buffer, options: Parser
     };
 
     // TODO: add more validation logic
-    const extParser : { [ext: string]: (arg: string) => void } = {
+    const extParser: { [ext: string]: (arg: string) => void } = {
         '#EXT-X-VERSION': (arg) => {
 
             m3u8.version = parseInt(arg, 10);
@@ -191,7 +192,7 @@ export default function (input: typeof Stream | string | Buffer, options: Parser
         // master v4 since master streams are not required to specify version
         '#EXT-X-MEDIA': (arg) => {
 
-            const attrs : AttrList = new AttrList(arg);
+            const attrs: AttrList = new AttrList(arg);
             const id = attrs.get('group-id', AttrList.Types.String) || '#';
 
             let list: AttrList[] & { type?: string } | undefined = m3u8.groups.get(id);
@@ -291,7 +292,7 @@ export default function (input: typeof Stream | string | Buffer, options: Parser
     };
 
     if (input instanceof Stream) {
-        deferred.promise = new Promise((resolve, reject) => {
+        deferred.promise = new Promise<M3U8Playlist>((resolve, reject) => {
 
             deferred.resolve = resolve;
             deferred.reject = reject;
@@ -301,11 +302,11 @@ export default function (input: typeof Stream | string | Buffer, options: Parser
         cr.on('data', ParseLine);
         cr.on('end', Complete);
 
-        input.on('error', deferred.reject);
+        input.on('error', deferred.reject as any);
 
         return deferred.promise.finally(() => {
 
-            input.removeListener('error', deferred.reject);
+            input.removeListener('error', deferred.reject as any);
             cr.removeListener('data', ParseLine);
             cr.removeListener('end', Complete);
         });
@@ -322,7 +323,7 @@ export default function (input: typeof Stream | string | Buffer, options: Parser
         }
     }
 
-    return Complete();
+    return Complete() as M3U8Playlist;
 }
 
 
@@ -331,6 +332,7 @@ export class ParserError extends Error {
     line: string;
     lineNumber: number;
 
+    // eslint-disable-next-line @typescript-eslint/ban-types
     constructor(msg: string, line: string, line_no: number, constr? : Function) {
 
         super();

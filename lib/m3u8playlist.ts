@@ -1,15 +1,15 @@
-const Clone: <T>(o: T) => T = require('clone');
-
 import { URL } from 'url';
 
-import AttrList from './attrlist';
+import Clone = require('clone');
+
+import { AttrList } from './attrlist';
 
 
 type Msn = number;
 
 type Byterange = {
-    offset: number,
-    length: number
+    offset: number;
+    length: number;
 };
 
 type UriMapFunction = (uri: string | undefined, type: string, data: unknown) => string | undefined;
@@ -30,7 +30,7 @@ const internals = {
         }
     },
 
-    tryBigInt(value: unknown) : bigint | undefined {
+    tryBigInt(value: unknown): bigint | undefined {
 
         try {
             if (typeof value === 'bigint') {
@@ -126,15 +126,15 @@ enum ArrayMetas {
 /* eslint-enable no-unused-vars */
 
 interface Variant {
-    uri: string,
-    info?: AttrList
+    uri: string;
+    info?: AttrList;
 }
 
 interface Meta {
-    skip?: AttrList,
-    ranges?: AttrList[],
-    preload_hints?: AttrList[],
-    rendition_reports?: AttrList[]
+    skip?: AttrList;
+    ranges?: AttrList[];
+    preload_hints?: AttrList[];
+    rendition_reports?: AttrList[];
 }
 
 
@@ -143,7 +143,7 @@ export class M3U8Playlist {
     public static readonly Type = PlaylistType;
     public static readonly _metas = new Map(Object.entries(ArrayMetas));
 
-    public static castAsMaster(index: M3U8Playlist) {
+    public static castAsMaster(index: M3U8Playlist): MasterPlaylist {
 
         if (!index.master) {
             throw new Error('Cannot cast a media playlist');
@@ -152,7 +152,7 @@ export class M3U8Playlist {
         return index as MasterPlaylist;
     }
 
-    public static castAsMedia(index: M3U8Playlist) {
+    public static castAsMedia(index: M3U8Playlist): MediaPlaylist {
 
         if (index.master) {
             throw new Error('Cannot cast a master playlist');
@@ -174,7 +174,7 @@ export class M3U8Playlist {
     independent_segments: boolean;
 
     segments: M3U8Segment[];
-    variants: Variant[]
+    variants: Variant[];
     groups: Map<string, AttrList[]>;
     iframes: AttrList[];
     data: Map<string, AttrList[]>;
@@ -281,18 +281,18 @@ export class M3U8Playlist {
         return undefined;
     }
 
-    totalDuration() : number {
+    totalDuration(): number {
 
         // TODO: include parts ????
         return this.segments.reduce((sum, segment) => sum + (segment.duration || 0), 0);
     }
 
-    isLive() : boolean {
+    isLive(): boolean {
 
         return !(this.ended || this.type === PlaylistType.VOD);
     }
 
-    startSeqNo(full = false) : Msn {
+    startSeqNo(full = false): Msn {
 
         if (this.segments.length === 0) {
             return -1;
@@ -314,14 +314,14 @@ export class M3U8Playlist {
         return this.first_seq_no + i;
     }
 
-    lastSeqNo(includePartial = true) : Msn {
+    lastSeqNo(includePartial = true): Msn {
 
         const msn = this.first_seq_no + this.segments.length - 1;
         return includePartial ? msn : msn - +this.getSegment(msn)!.isPartial();
     }
 
     // return whether the msn (and part) is in the index
-    isValidSeqNo(msn: Msn | string | bigint, part?: number) : boolean {
+    isValidSeqNo(msn: Msn | string | bigint, part?: number): boolean {
 
         msn = internals.tryBigInt(msn)!;
 
@@ -352,10 +352,10 @@ export class M3U8Playlist {
         return !this.getSegment(lastMsn)!.isPartial();
     }
 
-    dateForSeqNo(msn: Msn | bigint) : Date | null {
+    dateForSeqNo(msn: Msn | bigint): Date | null {
 
         let elapsed = 0;
-        const program_time = this._lastSegmentProperty('program_time', msn, ({ duration = 0, discontinuity } : M3U8Segment) => {
+        const program_time = this._lastSegmentProperty('program_time', msn, ({ duration = 0, discontinuity }: M3U8Segment) => {
 
             elapsed += duration;
             return discontinuity; // abort on discontinuity
@@ -364,7 +364,7 @@ export class M3U8Playlist {
         return program_time ? new Date(program_time.getTime() + (elapsed - (this.getSegment(msn)!.duration || 0)) * 1000) : null;
     }
 
-    seqNoForDate(date: Date | number | boolean, findNearestAfter = false) : Msn {
+    seqNoForDate(date: Date | number | boolean, findNearestAfter = false): Msn {
 
         if (typeof date === 'boolean') {
             findNearestAfter = date;
@@ -381,7 +381,7 @@ export class M3U8Playlist {
         // If findNearestAfter is true, the first sequence number after the date is returned
         // No assumptions are made about monotonic time
 
-        const firstValid : { msn: number, delta: number | null, duration: number } = { msn: -1, delta: null, duration: 0 };
+        const firstValid: { msn: number; delta: number | null; duration: number } = { msn: -1, delta: null, duration: 0 };
         let segmentEndTime = -1;
 
         const segments = this.segments; const count = ~~segments.length;
@@ -417,7 +417,7 @@ export class M3U8Playlist {
         return firstValid.msn;
     }
 
-    keysForSeqNo(msn: Msn | bigint) : AttrList[] | undefined {
+    keysForSeqNo(msn: Msn | bigint): AttrList[] | undefined {
 
         msn = internals.tryBigInt(msn)!;
 
@@ -449,14 +449,14 @@ export class M3U8Playlist {
         }
 
         const identity = keys.get('identity');
-        if (!identity?.has('iv')) {
-            identity?.set('iv', initialMsn, AttrList.Types.HexInt);
+        if (identity && !identity.has('iv')) {
+            identity.set('iv', initialMsn, AttrList.Types.HexInt);
         }
 
         return keys.size > 0 ? [...keys.values()] : undefined;
     }
 
-    byterangeForSeqNo(msn: Msn | bigint) : Byterange | undefined {
+    byterangeForSeqNo(msn: Msn | bigint): Byterange | undefined {
 
         msn = internals.tryBigInt(msn)!;
         if (msn === undefined) {
@@ -508,16 +508,15 @@ export class M3U8Playlist {
         return { length, offset };
     }
 
-    mapForSeqNo(msn: Msn | bigint) : AttrList | undefined {
+    mapForSeqNo(msn: Msn | bigint): AttrList | undefined {
 
-        return this._lastSegmentProperty('map', msn, ({ discontinuity } : M3U8Segment) => !!discontinuity); // abort on discontinuity
+        return this._lastSegmentProperty('map', msn, ({ discontinuity }: M3U8Segment) => !!discontinuity); // abort on discontinuity
     }
 
-    getSegment(msn: Msn | bigint): M3U8Segment | null;
+    getSegment(msn: Msn | bigint, independent?: false): M3U8Segment | null;
     getSegment(msn: Msn | bigint, independent: true): M3U8IndependentSegment | null;
-    getSegment(msn: Msn | bigint, independent: any): M3U8Segment | null;
 
-    getSegment(msn: Msn | bigint, independent = false) : M3U8Segment | null {
+    getSegment(msn: Msn | bigint, independent = false): M3U8Segment | null {
 
         msn = internals.tryBigInt(msn)!;
         if (msn === undefined) {
@@ -568,7 +567,7 @@ export class M3U8Playlist {
         return segment;
     }
 
-    rewriteUris(mapFn: UriMapFunction) : this {
+    rewriteUris(mapFn: UriMapFunction): this {
 
         const { rewriteAttrs, rewriteMappedAttrs } = internals;
 
@@ -596,7 +595,7 @@ export class M3U8Playlist {
         return this;
     }
 
-    toString() {
+    toString(): string {
 
         const { stringifyAttrs, streamInfAttrs } = PlaylistWriter;
 
@@ -619,7 +618,7 @@ export class M3U8Playlist {
             // add non-standard marlin entry
 
             if ((this as any).keys && Array.isArray((this as any).keys)) {
-                (this as any).forEach((key : AttrList) => {
+                (this as any).forEach((key: AttrList) => {
 
                     m3u8.ext('KEY', stringifyAttrs(key));
                 });
@@ -721,20 +720,19 @@ export class M3U8Playlist {
 type SharedProperties = 'master' | 'version' | 'independent_segments' | 'start' | 'defines' | 'vendor';
 type DeprecatedProperties = 'allow_cache';
 type MasterPlaylistProperties = 'variants' | 'groups' | 'iframes' | 'data' | 'session_keys';
-type MediaPlaylistProperties = 'segments' | 'meta' |
-                               'target_duration' | 'first_seq_no' | 'discontinuity_sequence' | 'ended' | 'type' |
-                               'i_frames_only' | 'part_info' | 'server_control';
+type MediaPlaylistProperties = 'segments' | 'meta' | 'target_duration' | 'first_seq_no' | 'discontinuity_sequence' | 'ended' | 'type' | 'i_frames_only' | 'part_info' | 'server_control';
 
-type AllPlaylistMethods = Exclude<keyof M3U8Playlist, SharedProperties | DeprecatedProperties | MasterPlaylistProperties | MediaPlaylistProperties | 'toString'>
+type AllPlaylistMethods = Exclude<keyof M3U8Playlist, SharedProperties | DeprecatedProperties | MasterPlaylistProperties | MediaPlaylistProperties | 'toString'>;
 
 export type MasterPlaylist = Pick<M3U8Playlist, SharedProperties | MasterPlaylistProperties> & {
-    readonly master: true,
-    rewriteUris(...args: Parameters<M3U8Playlist['rewriteUris']>) : MasterPlaylist
-}
+    readonly master: true;
+    rewriteUris(...args: Parameters<M3U8Playlist['rewriteUris']>): MasterPlaylist;
+};
+
 export type MediaPlaylist = Pick<M3U8Playlist, SharedProperties | AllPlaylistMethods | MediaPlaylistProperties> & {
-    readonly master: false,
-    rewriteUris(...args: Parameters<M3U8Playlist['rewriteUris']>): MediaPlaylist
-}
+    readonly master: false;
+    rewriteUris(...args: Parameters<M3U8Playlist['rewriteUris']>): MediaPlaylist;
+};
 
 export class M3U8Segment {
 
@@ -745,15 +743,14 @@ export class M3U8Segment {
 
     program_time? : Date | null;
     keys?: AttrList[];
-    byterange?: { offset? : number, length : number };
+    byterange?: { offset? : number; length: number };
     map?: AttrList;
     gap?: boolean;
     parts?: AttrList[];
 
     vendor?: Iterable<[string, string | null]>;
 
-    constructor();
-    constructor(obj: unknown);
+    constructor(obj?: unknown);
     constructor(uri: string | typeof URL | undefined, meta: M3U8Segment, version?: number);
 
     constructor(uri?: string | typeof URL, meta?: M3U8Segment, version?: number) {
@@ -813,7 +810,7 @@ export class M3U8Segment {
         }
     }
 
-    isPartial() : boolean {
+    isPartial(): boolean {
 
         const full = (this.uri || this.uri === '') && this.duration! >= 0;
         return !full;
@@ -837,7 +834,7 @@ export class M3U8Segment {
         return this;
     }
 
-    toString() : string {
+    toString(): string {
 
         const { stringifyAttrs } = PlaylistWriter;
         const m3u8 = new PlaylistWriter();
@@ -901,7 +898,7 @@ export class M3U8Segment {
 
 
 export type M3U8IndependentSegment = M3U8Segment & {
-    byterange?: Required<Byterange>
+    byterange?: Required<Byterange>;
 };
 
 
@@ -920,7 +917,7 @@ class PlaylistWriter {
         return attrs.size > 0 ? attrs.toString() : undefined;
     }
 
-    static streamInfAttrs(obj : AttrList, version? : number) {
+    static streamInfAttrs(obj: AttrList, version? : number) {
 
         const attrs = new AttrList(obj);
         if (version! >= 6) {
@@ -937,7 +934,7 @@ class PlaylistWriter {
         this._list = header ? [header] : [];
     }
 
-    push(...lines : string[]) {
+    push(...lines: string[]) {
 
         this._list.push(...lines);
     }
