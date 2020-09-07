@@ -34,7 +34,7 @@ describe('AttrList', () => {
 
         it('supports mappable array argument', () => {
 
-            const list = new AttrList([['value', '42'], ['EMPTY', '']]);
+            const list = new AttrList([['value', '42'], ['null', null], ['UNDEFINED'], ['EMPTY', '']]);
             expect(list.decimalIntegerAsNumber('VALUE')).to.equal(42);
             expect(list.enumeratedString('empty')).to.equal('');
             expect(list.size).to.equal(2);
@@ -42,7 +42,7 @@ describe('AttrList', () => {
 
         it('supports object argument', () => {
 
-            const obj = { value: '42', EMPTY: '' };
+            const obj = { value: '42', null: null, UNDEFINED: undefined, EMPTY: '' };
             const list = new AttrList(obj);
             expect(list.decimalIntegerAsNumber('VALUE')).to.equal(42);
             expect(list.enumeratedString('empty')).to.equal('');
@@ -54,6 +54,10 @@ describe('AttrList', () => {
             const orig = new AttrList('A=B');
             const copy = new AttrList(orig);
             expect(copy).to.equal(orig);
+        });
+
+        it('does not copy null and undefined attrs', () => {
+
         });
     });
 
@@ -147,6 +151,17 @@ describe('AttrList', () => {
 
                 attrs.set('a', Number.NaN);
                 expect(attrs.get('a')).to.equal('NaN');
+            });
+
+            it('deletes attr when null or undefined', ({ context: { list } }) => {
+
+                expect(list.has('string')).to.be.true();
+                list.set('string', null);
+                expect(list.has('string')).to.be.false();
+
+                expect(list.has('enum')).to.be.true();
+                list.set('enum', undefined);
+                expect(list.has('enum')).to.be.false();
             });
 
             it('fails on non-string attributes', () => {

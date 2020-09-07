@@ -13,7 +13,6 @@ export type Byterange = {
 };
 
 enum AttrType {
-    /* eslint-disable no-unused-vars */
     BigInt = 'bigint',
     HexInt = 'hexint',
     Int = 'int',
@@ -24,7 +23,6 @@ enum AttrType {
     SignedFloat = 'signed-float',
     Resolution = 'resolution',
     Byterange = 'byterange'
-    /* eslint-enable no-unused-vars */
 }
 
 const tokenify = function (attr: string): Token {
@@ -46,9 +44,16 @@ export class AttrList extends Map<Token, unknown> {
 
         super();
 
+        const set = (key: Token, value: unknown, format?: (val: unknown) => string) => {
+
+            if (value !== null && value !== undefined) {
+                super.set(key, format ? format(value) : value);
+            }
+        };
+
         if (attrs instanceof AttrList) {
             for (const [key, value] of attrs) {
-                super.set(key, value);
+                set(key, value);
             }
         }
         else if (typeof attrs === 'string') {
@@ -59,18 +64,17 @@ export class AttrList extends Map<Token, unknown> {
             let match;
 
             while ((match = re.exec(attrs)) !== null) {
-                super.set(tokenify(match[1]), match[2]);
+                set(tokenify(match[1]), match[2]);
             }
         }
         else if (!(attrs instanceof Map) && !Array.isArray(attrs)) {
             for (const attr in attrs) {
-                const value = attrs[attr] || '';
-                super.set(tokenify(attr), value.toString());
+                set(tokenify(attr), attrs[attr], (val) => `${val || ''}`);
             }
         }
         else {
             for (const [key, value] of attrs) {
-                super.set(tokenify(key), (value as any).toString());
+                set(tokenify(key), value, (val) => `${val}`);
             }
         }
     }
