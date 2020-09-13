@@ -163,7 +163,7 @@ export class M3U8Playlist {
 
     master: boolean;
     version: number;
-    allow_cache: boolean;
+    allow_cache?: boolean;
     i_frames_only: boolean;
     target_duration?: number;
     media_sequence: Msn;
@@ -196,7 +196,6 @@ export class M3U8Playlist {
         // Initialize to default values
 
         this.version = obj.version || 1; // V1
-        this.allow_cache = !(obj.allow_cache === false);
         this.i_frames_only = obj.i_frames_only || false; // V4
         this.target_duration = obj.target_duration || undefined;
         this.media_sequence = (obj as any).first_seq_no || obj.media_sequence || 0;
@@ -205,6 +204,10 @@ export class M3U8Playlist {
         this.discontinuity_sequence = obj.discontinuity_sequence; // V6
         this.start = new AttrList(obj.start); // V6
         this.independent_segments = obj.independent_segments; // V6
+
+        if (obj.allow_cache !== undefined) {
+            this.allow_cache = !!obj.allow_cache;
+        }
 
         this.segments = [];
         if (obj.segments) {
@@ -629,7 +632,7 @@ export class M3U8Playlist {
 
             m3u8.ext('PLAYLIST-TYPE', this.type);
 
-            if (this.version < 7 && !this.allow_cache) {
+            if (this.version < 7 && this.allow_cache === false) {
                 m3u8.ext('ALLOW-CACHE', 'NO');
             }
 
