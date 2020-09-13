@@ -133,7 +133,7 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
         },
         '#EXT-X-MEDIA-SEQUENCE': (arg) => {
 
-            m3u8.first_seq_no = parseInt(arg, 10);
+            m3u8.media_sequence = parseInt(arg, 10);
         },
         '#EXT-X-DISCONTINUITY-SEQUENCE': (arg) => {
 

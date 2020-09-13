@@ -166,7 +166,7 @@ export class M3U8Playlist {
     allow_cache: boolean;
     i_frames_only: boolean;
     target_duration?: number;
-    first_seq_no: Msn;
+    media_sequence: Msn;
     type?: PlaylistType | string | undefined;
     ended: boolean;
     discontinuity_sequence: Msn;
@@ -199,7 +199,7 @@ export class M3U8Playlist {
         this.allow_cache = !(obj.allow_cache === false);
         this.i_frames_only = obj.i_frames_only || false; // V4
         this.target_duration = obj.target_duration || undefined;
-        this.first_seq_no = obj.first_seq_no || 0;
+        this.media_sequence = (obj as any).first_seq_no || obj.media_sequence || 0;
         this.type = obj.type; // V3+
         this.ended = obj.ended || false;
         this.discontinuity_sequence = obj.discontinuity_sequence; // V6
@@ -292,14 +292,14 @@ export class M3U8Playlist {
         return !(this.ended || this.type === PlaylistType.VOD);
     }
 
-    startSeqNo(full = false): Msn {
+    startMsn(full = false): Msn {
 
         if (this.segments.length === 0) {
             return -1;
         }
 
         if (!this.isLive() || full) {
-            return this.first_seq_no;
+            return this.media_sequence;
         }
 
         let i; let duration = (this.target_duration || 0) * 3;
@@ -311,25 +311,25 @@ export class M3U8Playlist {
         }
 
         // TODO: validate that correct seqNo is returned
-        return this.first_seq_no + i;
+        return this.media_sequence + i;
     }
 
-    lastSeqNo(includePartial = true): Msn {
+    lastMsn(includePartial = true): Msn {
 
-        const msn = this.first_seq_no + this.segments.length - 1;
+        const msn = this.media_sequence + this.segments.length - 1;
         return includePartial ? msn : msn - +this.getSegment(msn)!.isPartial();
     }
 
     // return whether the msn (and part) is in the index
-    isValidSeqNo(msn: Msn | string | bigint, part?: number): boolean {
+    isValidMsn(msn: Msn | string | bigint, part?: number): boolean {
 
         msn = internals.tryBigInt(msn)!;
 
-        if (msn < BigInt(this.first_seq_no)) {
+        if (msn < BigInt(this.media_sequence)) {
             return false;
         }
 
-        const lastMsn = BigInt(this.lastSeqNo(true));
+        const lastMsn = BigInt(this.lastMsn(true));
         if (msn > lastMsn) {
             return false;
         }
@@ -342,7 +342,7 @@ export class M3U8Playlist {
 
         if (part !== undefined) {
             if (part < 0) {      // Any negative part is assumed to be from the previous segment
-                return this.isValidSeqNo(msn - BigInt(1));
+                return this.isValidMsn(msn - BigInt(1));
             }
 
             const { parts = { length: -1 } } = this.getSegment(lastMsn)!;
@@ -352,7 +352,7 @@ export class M3U8Playlist {
         return !this.getSegment(lastMsn)!.isPartial();
     }
 
-    dateForSeqNo(msn: Msn | bigint): Date | null {
+    dateForMsn(msn: Msn | bigint): Date | null {
 
         let elapsed = 0;
         const program_time = this._lastSegmentProperty('program_time', msn, ({ duration = 0, discontinuity }: M3U8Segment) => {
@@ -364,7 +364,7 @@ export class M3U8Playlist {
         return program_time ? new Date(program_time.getTime() + (elapsed - (this.getSegment(msn)!.duration || 0)) * 1000) : null;
     }
 
-    seqNoForDate(date: Date | number | boolean, findNearestAfter = false): Msn {
+    msnForDate(date: Date | number | boolean, findNearestAfter = false): Msn {
 
         if (typeof date === 'boolean') {
             findNearestAfter = date;
@@ -403,7 +403,7 @@ export class M3U8Playlist {
                 // update firstValid
                 const delta = segmentEndTime - startTime - 1;
                 if (delta >= 0 && (firstValid.delta === null || delta < firstValid.delta! || delta < segmentDuration)) {
-                    firstValid.msn = this.first_seq_no + i;
+                    firstValid.msn = this.media_sequence + i;
                     firstValid.delta = delta;
                     firstValid.duration = segmentDuration;
                 }
@@ -417,7 +417,7 @@ export class M3U8Playlist {
         return firstValid.msn;
     }
 
-    keysForSeqNo(msn: Msn | bigint): AttrList[] | undefined {
+    keysForMsn(msn: Msn | bigint): AttrList[] | undefined {
 
         msn = internals.tryBigInt(msn)!;
 
@@ -456,14 +456,14 @@ export class M3U8Playlist {
         return keys.size > 0 ? [...keys.values()] : undefined;
     }
 
-    byterangeForSeqNo(msn: Msn | bigint): Byterange | undefined {
+    byterangeForMsn(msn: Msn | bigint): Byterange | undefined {
 
         msn = internals.tryBigInt(msn)!;
         if (msn === undefined) {
             return undefined;
         }
 
-        const segmentIdx = Number(msn - BigInt(this.first_seq_no));
+        const segmentIdx = Number(msn - BigInt(this.media_sequence));
         const segment = this.segments[segmentIdx];
         if (!segment || !segment.byterange) {
             return undefined;
@@ -508,7 +508,7 @@ export class M3U8Playlist {
         return { length, offset };
     }
 
-    mapForSeqNo(msn: Msn | bigint): AttrList | undefined {
+    mapForMsn(msn: Msn | bigint): AttrList | undefined {
 
         return this._lastSegmentProperty('map', msn, ({ discontinuity }: M3U8Segment) => !!discontinuity); // abort on discontinuity
     }
@@ -523,19 +523,19 @@ export class M3U8Playlist {
             return null;
         }
 
-        const index = Number(msn - BigInt(this.first_seq_no));
+        const index = Number(msn - BigInt(this.media_sequence));
         let segment = this.segments[index] || null;
         if (independent && segment) {
             segment = new M3U8Segment(segment);
             // EXT-X-KEY, EXT-X-MAP, EXT-X-PROGRAM-DATE-TIME, EXT-X-BYTERANGE needs to be individualized
-            segment.program_time = this.dateForSeqNo(msn);
-            segment.keys = this.keysForSeqNo(msn);
+            segment.program_time = this.dateForMsn(msn);
+            segment.keys = this.keysForMsn(msn);
             if (this.version >= 4) {
-                segment.byterange = this.byterangeForSeqNo(msn);
+                segment.byterange = this.byterangeForMsn(msn);
             }
 
             if (this.version >= 5) {
-                segment.map = this.mapForSeqNo(msn);
+                segment.map = this.mapForMsn(msn);
             }
 
             // Resolve relative byteranges in parts
@@ -636,9 +636,9 @@ export class M3U8Playlist {
             m3u8.ext('SERVER-CONTROL', stringifyAttrs(this.server_control));
             m3u8.ext('PART-INF', stringifyAttrs(this.part_info));
 
-            const firstSeqNo = parseInt(this.first_seq_no as unknown as string, 10) || 0;
-            if (firstSeqNo !== 0) {
-                m3u8.ext('MEDIA-SEQUENCE', firstSeqNo);
+            const mediaSequence = parseInt(this.media_sequence as unknown as string, 10) || 0;
+            if (mediaSequence !== 0) {
+                m3u8.ext('MEDIA-SEQUENCE', mediaSequence);
             }
 
             if (this.type !== PlaylistType.VOD && this.type !== PlaylistType.EVENT) {
@@ -720,7 +720,7 @@ export class M3U8Playlist {
 type SharedProperties = 'master' | 'version' | 'independent_segments' | 'start' | 'defines' | 'vendor';
 type DeprecatedProperties = 'allow_cache';
 type MasterPlaylistProperties = 'variants' | 'groups' | 'iframes' | 'data' | 'session_keys';
-type MediaPlaylistProperties = 'segments' | 'meta' | 'target_duration' | 'first_seq_no' | 'discontinuity_sequence' | 'ended' | 'type' | 'i_frames_only' | 'part_info' | 'server_control';
+type MediaPlaylistProperties = 'segments' | 'meta' | 'target_duration' | 'media_sequence' | 'discontinuity_sequence' | 'ended' | 'type' | 'i_frames_only' | 'part_info' | 'server_control';
 
 type AllPlaylistMethods = Exclude<keyof M3U8Playlist, SharedProperties | DeprecatedProperties | MasterPlaylistProperties | MediaPlaylistProperties | 'toString'>;
 

@@ -200,176 +200,176 @@ describe('M3U8Playlist', () => {
         });
     });
 
-    describe('#startSeqNo()', () => {
+    describe('#startMsn()', () => {
 
         it('should return the sequence number to start streaming from', () => {
 
-            expect(testIndex.startSeqNo()).to.equal(7794);
-            expect(testIndexSingle.startSeqNo()).to.equal(300);
-            expect(masterIndex.startSeqNo()).to.equal(-1);
+            expect(testIndex.startMsn()).to.equal(7794);
+            expect(testIndexSingle.startMsn()).to.equal(300);
+            expect(masterIndex.startMsn()).to.equal(-1);
         });
 
         it('should handle the full option', () => {
 
-            expect(testIndex.startSeqNo(true)).to.equal(7794);
-            expect(testIndexSingle.startSeqNo(true)).to.equal(300);
-            expect(masterIndex.startSeqNo(true)).to.equal(-1);
+            expect(testIndex.startMsn(true)).to.equal(7794);
+            expect(testIndexSingle.startMsn(true)).to.equal(300);
+            expect(masterIndex.startMsn(true)).to.equal(-1);
         });
     });
 
-    describe('#lastSeqNo()', () => {
+    describe('#lastMsn()', () => {
 
         it('should return the sequence number of the final segment', () => {
 
-            expect(testIndex.lastSeqNo()).to.equal(7797);
-            expect(masterIndex.lastSeqNo()).to.equal(-1);
+            expect(testIndex.lastMsn()).to.equal(7797);
+            expect(masterIndex.lastMsn()).to.equal(-1);
         });
     });
 
-    describe('#isValidSeqNo()', () => {
+    describe('#isValidMsn()', () => {
 
         it('should return false for early numbers', () => {
 
-            expect(testIndex.isValidSeqNo(-1000)).to.be.false();
-            expect(testIndex.isValidSeqNo(0)).to.be.false();
-            expect(testIndex.isValidSeqNo('100')).to.be.false();
+            expect(testIndex.isValidMsn(-1000)).to.be.false();
+            expect(testIndex.isValidMsn(0)).to.be.false();
+            expect(testIndex.isValidMsn('100')).to.be.false();
         });
 
         it('should return false for future numbers', () => {
 
-            expect(testIndex.isValidSeqNo(10000)).to.be.false();
-            expect(testIndex.isValidSeqNo('10000')).to.be.false();
+            expect(testIndex.isValidMsn(10000)).to.be.false();
+            expect(testIndex.isValidMsn('10000')).to.be.false();
         });
 
         it('should return true for numbers in range', () => {
 
-            expect(testIndex.isValidSeqNo(7794)).to.be.true();
-            expect(testIndex.isValidSeqNo('7795')).to.be.true();
-            expect(testIndex.isValidSeqNo(7796)).to.be.true();
-            expect(testIndex.isValidSeqNo(7797)).to.be.true();
+            expect(testIndex.isValidMsn(7794)).to.be.true();
+            expect(testIndex.isValidMsn('7795')).to.be.true();
+            expect(testIndex.isValidMsn(7796)).to.be.true();
+            expect(testIndex.isValidMsn(7797)).to.be.true();
         });
     });
 
-    describe('#dateForSeqNo()', () => {
+    describe('#dateForMsn()', () => {
 
         it('should return null for out of bounds sequence numbers', () => {
 
-            expect(testIndex.dateForSeqNo(0)).to.not.exist();
-            expect(testIndex.dateForSeqNo('100')).to.not.exist();
-            expect(testIndex.dateForSeqNo(10000)).to.not.exist();
-            expect(testIndex.dateForSeqNo('10000')).to.not.exist();
+            expect(testIndex.dateForMsn(0)).to.not.exist();
+            expect(testIndex.dateForMsn('100')).to.not.exist();
+            expect(testIndex.dateForMsn(10000)).to.not.exist();
+            expect(testIndex.dateForMsn('10000')).to.not.exist();
         });
 
         it('should return null for indexes with no date information', () => {
 
-            expect(masterIndex.dateForSeqNo(0)).to.not.exist();
+            expect(masterIndex.dateForMsn(0)).to.not.exist();
 
             const index = new M3U8Playlist(testIndex);
             delete index.segments[0].program_time;
-            expect(index.dateForSeqNo(7794)).to.not.exist();
+            expect(index.dateForMsn(7794)).to.not.exist();
         });
 
         it('should return correct value for numbers in range', () => {
 
-            expect(testIndex.dateForSeqNo('7794')).to.be.an.instanceof(Date);
-            expect(testIndex.dateForSeqNo(7794)).to.equal(new Date('2013-10-29T11:34:13.000Z'));
-            expect(testIndex.dateForSeqNo(7795)).to.equal(new Date('2013-10-29T11:34:15.833Z'));
-            expect(testIndex.dateForSeqNo(7796)).to.equal(new Date('2013-10-29T11:34:30.833Z'));
-            expect(testIndex.dateForSeqNo(7797)).to.equal(new Date('2013-10-29T11:34:44.000Z'));
+            expect(testIndex.dateForMsn('7794')).to.be.an.instanceof(Date);
+            expect(testIndex.dateForMsn(7794)).to.equal(new Date('2013-10-29T11:34:13.000Z'));
+            expect(testIndex.dateForMsn(7795)).to.equal(new Date('2013-10-29T11:34:15.833Z'));
+            expect(testIndex.dateForMsn(7796)).to.equal(new Date('2013-10-29T11:34:30.833Z'));
+            expect(testIndex.dateForMsn(7797)).to.equal(new Date('2013-10-29T11:34:44.000Z'));
         });
 
         it('should handle a discontinuity', () => {
 
-            expect(testIndexAlt.dateForSeqNo(7794)).to.equal(new Date('2013-10-29T11:34:13.000Z'));
-            expect(testIndexAlt.dateForSeqNo(7795)).to.not.exist();
-            expect(testIndexAlt.dateForSeqNo(7796)).to.not.exist();
-            expect(testIndexAlt.dateForSeqNo(7797)).to.equal(new Date('2013-10-20T19:34:44.000Z'));
+            expect(testIndexAlt.dateForMsn(7794)).to.equal(new Date('2013-10-29T11:34:13.000Z'));
+            expect(testIndexAlt.dateForMsn(7795)).to.not.exist();
+            expect(testIndexAlt.dateForMsn(7796)).to.not.exist();
+            expect(testIndexAlt.dateForMsn(7797)).to.equal(new Date('2013-10-20T19:34:44.000Z'));
         });
     });
 
-    describe('#seqNoForDate()', () => {
+    describe('#msnForDate()', () => {
 
         it('should return -1 for out of bounds dates', () => {
 
-            expect(testIndex.seqNoForDate()).to.equal(-1);
-            expect(testIndex.seqNoForDate(0)).to.equal(-1);
-            expect(testIndex.seqNoForDate(true)).to.equal(-1);
-            expect(testIndex.seqNoForDate(new Date())).to.equal(-1);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T11:34:12.999Z'))).to.equal(-1);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T12:34:59.000+0100'))).to.equal(-1);
-            expect(testIndex.seqNoForDate(Number.MAX_VALUE)).to.equal(-1);
-            expect(testIndex.seqNoForDate('2014-01-01', true)).to.equal(-1);
-            expect(testIndex.seqNoForDate(Infinity)).to.equal(-1);
+            expect(testIndex.msnForDate()).to.equal(-1);
+            expect(testIndex.msnForDate(0)).to.equal(-1);
+            expect(testIndex.msnForDate(true)).to.equal(-1);
+            expect(testIndex.msnForDate(new Date())).to.equal(-1);
+            expect(testIndex.msnForDate(new Date('2013-10-29T11:34:12.999Z'))).to.equal(-1);
+            expect(testIndex.msnForDate(new Date('2013-10-29T12:34:59.000+0100'))).to.equal(-1);
+            expect(testIndex.msnForDate(Number.MAX_VALUE)).to.equal(-1);
+            expect(testIndex.msnForDate('2014-01-01', true)).to.equal(-1);
+            expect(testIndex.msnForDate(Infinity)).to.equal(-1);
         });
 
         it('should return correct sequence numbers for in bound dates', () => {
 
-            expect(testIndex.seqNoForDate(0, true)).to.equal(7794);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T11:34:12.999Z'), true)).to.equal(7794);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T11:34:13.000Z'))).to.equal(7794);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T11:34:13.000Z'), true)).to.equal(7794);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T11:34:15.832Z'))).to.equal(7794);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T11:34:15.832Z'), true)).to.equal(7794);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T11:34:15.833Z'))).to.equal(7795);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T11:34:15.833Z'), true)).to.equal(7795);
-            expect(testIndex.seqNoForDate('2013-10-29T11:34:18.000Z')).to.equal(7795);
-            expect(testIndex.seqNoForDate('2013-10-29T11:34:18.000Z', true)).to.equal(7795);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T12:34:43.999+0100'))).to.equal(7796);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T12:34:43.999+0100'), true)).to.equal(7796);
-            expect(testIndex.seqNoForDate(1383046484000)).to.equal(7797);
-            expect(testIndex.seqNoForDate(1383046484000, true)).to.equal(7797);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T12:34:58.999+0100'))).to.equal(7797);
-            expect(testIndex.seqNoForDate(new Date('2013-10-29T12:34:58.999+0100'), true)).to.equal(7797);
-            expect(testIndex.seqNoForDate(-Infinity, true)).to.equal(7794);
+            expect(testIndex.msnForDate(0, true)).to.equal(7794);
+            expect(testIndex.msnForDate(new Date('2013-10-29T11:34:12.999Z'), true)).to.equal(7794);
+            expect(testIndex.msnForDate(new Date('2013-10-29T11:34:13.000Z'))).to.equal(7794);
+            expect(testIndex.msnForDate(new Date('2013-10-29T11:34:13.000Z'), true)).to.equal(7794);
+            expect(testIndex.msnForDate(new Date('2013-10-29T11:34:15.832Z'))).to.equal(7794);
+            expect(testIndex.msnForDate(new Date('2013-10-29T11:34:15.832Z'), true)).to.equal(7794);
+            expect(testIndex.msnForDate(new Date('2013-10-29T11:34:15.833Z'))).to.equal(7795);
+            expect(testIndex.msnForDate(new Date('2013-10-29T11:34:15.833Z'), true)).to.equal(7795);
+            expect(testIndex.msnForDate('2013-10-29T11:34:18.000Z')).to.equal(7795);
+            expect(testIndex.msnForDate('2013-10-29T11:34:18.000Z', true)).to.equal(7795);
+            expect(testIndex.msnForDate(new Date('2013-10-29T12:34:43.999+0100'))).to.equal(7796);
+            expect(testIndex.msnForDate(new Date('2013-10-29T12:34:43.999+0100'), true)).to.equal(7796);
+            expect(testIndex.msnForDate(1383046484000)).to.equal(7797);
+            expect(testIndex.msnForDate(1383046484000, true)).to.equal(7797);
+            expect(testIndex.msnForDate(new Date('2013-10-29T12:34:58.999+0100'))).to.equal(7797);
+            expect(testIndex.msnForDate(new Date('2013-10-29T12:34:58.999+0100'), true)).to.equal(7797);
+            expect(testIndex.msnForDate(-Infinity, true)).to.equal(7794);
         });
 
         it('should return correct sequence numbers for indexes with non-monotonic discontinuities', () => {
 
-            expect(testIndexAlt.seqNoForDate(0, true)).to.equal(7797);
-            expect(testIndexAlt.seqNoForDate(new Date('2013-10-29T11:34:12.999Z'), true)).to.equal(7794);
-            expect(testIndexAlt.seqNoForDate(new Date('2013-10-29T11:34:13.000Z'))).to.equal(7794);
-            expect(testIndexAlt.seqNoForDate(new Date('2013-10-29T11:34:15.833Z'))).to.equal(-1);
-            expect(testIndexAlt.seqNoForDate(new Date('2013-10-29T11:34:15.833Z'), true)).to.equal(-1);
-            expect(testIndexAlt.seqNoForDate(new Date('2013-10-20T20:34:44.000+0100'))).to.equal(7797);
-            expect(testIndexAlt.seqNoForDate(new Date('2013-10-20'), true)).to.equal(7797);
+            expect(testIndexAlt.msnForDate(0, true)).to.equal(7797);
+            expect(testIndexAlt.msnForDate(new Date('2013-10-29T11:34:12.999Z'), true)).to.equal(7794);
+            expect(testIndexAlt.msnForDate(new Date('2013-10-29T11:34:13.000Z'))).to.equal(7794);
+            expect(testIndexAlt.msnForDate(new Date('2013-10-29T11:34:15.833Z'))).to.equal(-1);
+            expect(testIndexAlt.msnForDate(new Date('2013-10-29T11:34:15.833Z'), true)).to.equal(-1);
+            expect(testIndexAlt.msnForDate(new Date('2013-10-20T20:34:44.000+0100'))).to.equal(7797);
+            expect(testIndexAlt.msnForDate(new Date('2013-10-20'), true)).to.equal(7797);
         });
     });
 
-    describe('#keysForSeqNo()', () => {
+    describe('#keysForMsn()', () => {
 
         it('should return null for for out of bounds sequence numbers', () => {
 
-            expect(testIndex.keysForSeqNo(0)).to.not.exist();
-            expect(testIndexAlt.keysForSeqNo('100')).to.not.exist();
-            expect(testIndexSingle.keysForSeqNo(100)).to.not.exist();
-            expect(testIndex.keysForSeqNo(10000)).to.not.exist();
-            expect(testIndexAlt.keysForSeqNo('10000')).to.not.exist();
-            expect(testIndexSingle.keysForSeqNo(10000)).to.not.exist();
+            expect(testIndex.keysForMsn(0)).to.not.exist();
+            expect(testIndexAlt.keysForMsn('100')).to.not.exist();
+            expect(testIndexSingle.keysForMsn(100)).to.not.exist();
+            expect(testIndex.keysForMsn(10000)).to.not.exist();
+            expect(testIndexAlt.keysForMsn('10000')).to.not.exist();
+            expect(testIndexSingle.keysForMsn(10000)).to.not.exist();
         });
 
         it('should return null for for indexes with no key information', () => {
 
-            expect(masterIndex.keysForSeqNo(0)).to.not.exist();
+            expect(masterIndex.keysForMsn(0)).to.not.exist();
 
             const index = new M3U8Playlist(testIndex);
             delete index.segments[0].keys;
-            expect(index.keysForSeqNo(7794)).to.not.exist();
+            expect(index.keysForMsn(7794)).to.not.exist();
         });
 
         it('should return correct value for numbers in range', () => {
 
-            expect(testIndex.keysForSeqNo(7794)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e72' })]);
-            expect(testIndex.keysForSeqNo(7795)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e73' })]);
-            expect(testIndex.keysForSeqNo(7796)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e74' })]);
-            expect(testIndex.keysForSeqNo(7797)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x1e75' })]);
+            expect(testIndex.keysForMsn(7794)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e72' })]);
+            expect(testIndex.keysForMsn(7795)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e73' })]);
+            expect(testIndex.keysForMsn(7796)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e74' })]);
+            expect(testIndex.keysForMsn(7797)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x1e75' })]);
 
-            expect(testIndexSingle.keysForSeqNo(300)).to.equal([new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1234' })]);
-            expect(testIndexSingle.keysForSeqNo(301)).to.not.exist();
-            expect(testIndexSingle.keysForSeqNo(302)).to.equal([
+            expect(testIndexSingle.keysForMsn(300)).to.equal([new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1234' })]);
+            expect(testIndexSingle.keysForMsn(301)).to.not.exist();
+            expect(testIndexSingle.keysForMsn(302)).to.equal([
                 new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x4321' }),
                 new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"skd://key53"', keyformat: '"com.apple.streamingkeydelivery"', keyformatversions: '"1"' })
             ]);
-            expect(testIndexSingle.keysForSeqNo(303)).to.equal([
+            expect(testIndexSingle.keysForMsn(303)).to.equal([
                 new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x4322' }),
                 new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"skd://key53"', keyformat: '"com.apple.streamingkeydelivery"', keyformatversions: '"1"' })
             ]);
@@ -380,31 +380,31 @@ describe('M3U8Playlist', () => {
 
         it('should return null after method=NONE', () => {
 
-            expect(testIndexAlt.keysForSeqNo(7795)).to.not.exist();
-            expect(testIndexSingle.keysForSeqNo(301)).to.not.exist();
+            expect(testIndexAlt.keysForMsn(7795)).to.not.exist();
+            expect(testIndexSingle.keysForMsn(301)).to.not.exist();
         });
     });
 
-    describe('#byterangeForSeqNo()', () => {
+    describe('#byterangeForMsn()', () => {
 
         it('should return null for for out of bounds sequence numbers', () => {
 
-            expect(testIndexSingle.byterangeForSeqNo(0)).to.not.exist();
-            expect(testIndexSingle.byterangeForSeqNo('100')).to.not.exist();
-            expect(testIndexSingle.byterangeForSeqNo('10000')).to.not.exist();
+            expect(testIndexSingle.byterangeForMsn(0)).to.not.exist();
+            expect(testIndexSingle.byterangeForMsn('100')).to.not.exist();
+            expect(testIndexSingle.byterangeForMsn('10000')).to.not.exist();
         });
 
         it('should return null for for indexes with no byterange information', () => {
 
-            expect(testIndex.byterangeForSeqNo(7794)).to.not.exist();
+            expect(testIndex.byterangeForMsn(7794)).to.not.exist();
         });
 
         it('should return correct values', () => {
 
-            expect(testIndexSingle.byterangeForSeqNo(300)).to.equal({ length: 300000, offset: 5000000 });
-            expect(testIndexSingle.byterangeForSeqNo(301)).to.equal({ length: 300000, offset: 0 });
-            expect(testIndexSingle.byterangeForSeqNo(302)).to.equal({ length: 300000, offset: 300000 });
-            expect(testIndexSingle.byterangeForSeqNo(303)).to.equal({ length: 300000, offset: 600000 });
+            expect(testIndexSingle.byterangeForMsn(300)).to.equal({ length: 300000, offset: 5000000 });
+            expect(testIndexSingle.byterangeForMsn(301)).to.equal({ length: 300000, offset: 0 });
+            expect(testIndexSingle.byterangeForMsn(302)).to.equal({ length: 300000, offset: 300000 });
+            expect(testIndexSingle.byterangeForMsn(303)).to.equal({ length: 300000, offset: 600000 });
         });
     });
 
