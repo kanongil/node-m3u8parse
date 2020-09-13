@@ -1,7 +1,7 @@
 'use strict';
 
 const EslintConfigHapi = require('@hapi/eslint-config-hapi');
-const TypescriptRules = require('@typescript-eslint/eslint-plugin/').rules;
+const TypescriptRules = require('@typescript-eslint/eslint-plugin').rules;
 
 
 const tsifyRules = function (from) {
