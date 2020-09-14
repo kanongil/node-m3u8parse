@@ -5,8 +5,7 @@ const Path = require('path');
 
 const Code = require('@hapi/code');
 const Lab = require('@hapi/lab');
-const M3u8Parse = require('..');
-const { MasterPlaylist, MediaPlaylist } = require('..');
+const { M3U8Parse, MasterPlaylist, MediaPlaylist, MediaSegment, AttrList, ParserError } = require('..');
 
 
 const fixtureDir = Path.join(__dirname, 'fixtures');
@@ -22,7 +21,7 @@ describe('M3U8Parse', () => {
     it('should parse a valid live file', async () => {
 
         const stream = Fs.createReadStream(Path.join(fixtureDir, 'enc.m3u8'));
-        const index = await M3u8Parse(stream);
+        const index = await M3U8Parse(stream);
 
         expect(index).to.exist();
         expect(index.master).to.be.false();
@@ -31,7 +30,7 @@ describe('M3U8Parse', () => {
     it('supports buffer input', async () => {
 
         const buf = Fs.readFileSync(Path.join(fixtureDir, 'enc.m3u8'));
-        const index = await M3u8Parse(buf);
+        const index = await M3U8Parse(buf);
 
         expect(index).to.exist();
         expect(index.master).to.be.false();
@@ -40,7 +39,7 @@ describe('M3U8Parse', () => {
     it('supports string input', async () => {
 
         const str = Fs.readFileSync(Path.join(fixtureDir, 'enc.m3u8'), 'utf-8');
-        const index = await M3u8Parse(str);
+        const index = await M3U8Parse(str);
 
         expect(index).to.exist();
         expect(index.master).to.be.false();
@@ -48,13 +47,13 @@ describe('M3U8Parse', () => {
 
     it('throws a ParserError for empty input', () => {
 
-        expect(() => M3u8Parse('')).to.throw(M3u8Parse.ParserError, 'No line data');
+        expect(() => M3U8Parse('')).to.throw(ParserError, 'No line data');
     });
 
     it('should parse a valid VOD file', async () => {
 
         const stream = Fs.createReadStream(Path.join(fixtureDir, 'vod.m3u8'));
-        const index = await M3u8Parse(stream);
+        const index = await M3U8Parse(stream);
         expect(index).to.exist();
         expect(index.master).to.be.false();
     });
@@ -62,7 +61,7 @@ describe('M3U8Parse', () => {
     it('should parse a basic master file', async () => {
 
         const stream = Fs.createReadStream(Path.join(fixtureDir, 'variant.m3u8'));
-        const index = await M3u8Parse(stream);
+        const index = await M3U8Parse(stream);
         expect(index).to.exist();
         expect(index.master).to.be.true();
     });
@@ -70,7 +69,7 @@ describe('M3U8Parse', () => {
     it('should parse an advanced master file', async () => {
 
         const stream = Fs.createReadStream(Path.join(fixtureDir, 'variant_v4.m3u8'));
-        const index = await M3u8Parse(stream);
+        const index = await M3U8Parse(stream);
         expect(index).to.exist();
         expect(index.master).to.be.true();
     });
@@ -78,7 +77,7 @@ describe('M3U8Parse', () => {
     it('should parse a v6 master file', async () => {
 
         const stream = Fs.createReadStream(Path.join(fixtureDir, 'variant_v6.m3u8'));
-        const index = await M3u8Parse(stream);
+        const index = await M3U8Parse(stream);
         expect(index).to.exist();
         expect(index.master).to.be.true();
     });
@@ -86,7 +85,7 @@ describe('M3U8Parse', () => {
     it('should parse an iframe master file', async () => {
 
         const stream = Fs.createReadStream(Path.join(fixtureDir, 'variant_iframe.m3u8'));
-        const index = await M3u8Parse(stream);
+        const index = await M3U8Parse(stream);
         expect(index).to.exist();
         expect(index.master).to.be.true();
     });
@@ -94,7 +93,7 @@ describe('M3U8Parse', () => {
     it('should handle vendor extensions', async () => {
 
         const stream = Fs.createReadStream(Path.join(fixtureDir, 'enc.m3u8'));
-        const index = await M3u8Parse(stream, { extensions: { '#EXT-X-UNKNOWN-EXTENSION': false, '#EXT-Y-META-EXTENSION': true } });
+        const index = await M3U8Parse(stream, { extensions: { '#EXT-X-UNKNOWN-EXTENSION': false, '#EXT-Y-META-EXTENSION': true } });
         expect(index).to.exist();
 
         expect(index.vendor).to.equal([['#EXT-X-UNKNOWN-EXTENSION', null]]);
@@ -108,7 +107,7 @@ describe('M3U8Parse', () => {
     it('should fail on invalid files', async () => {
 
         const stream = Fs.createReadStream(Path.join(fixtureDir, 'empty.m3u8'));
-        await expect(M3u8Parse(stream)).to.reject(M3u8Parse.ParserError);
+        await expect(M3U8Parse(stream)).to.reject(ParserError);
     });
 });
 
@@ -127,11 +126,11 @@ describe('M3U8Playlist', () => {
 
     before(async () => {
 
-        testIndex = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc.m3u8')));
-        testIndexAlt = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc-discont.m3u8')));
-        testIndexSingle = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc-single.m3u8')));
-        testIndexLl = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'll.m3u8')));
-        masterIndex = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'variant_v4.m3u8')));
+        testIndex = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc.m3u8')));
+        testIndexAlt = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc-discont.m3u8')));
+        testIndexSingle = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc-single.m3u8')));
+        testIndexLl = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'll.m3u8')));
+        masterIndex = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'variant_v4.m3u8')));
     });
 
     describe('constructor', () => {
@@ -156,7 +155,7 @@ describe('M3U8Playlist', () => {
         it('performs object to Map conversion', async () => {
 
             const stream = Fs.createReadStream(Path.join(fixtureDir, 'variant_v4.m3u8'));
-            const index = await M3u8Parse(stream);
+            const index = await M3U8Parse(stream);
 
             const toObject = function (map) {
 
@@ -356,20 +355,20 @@ describe('M3U8Playlist', () => {
 
         it('should return correct value for numbers in range', () => {
 
-            expect(testIndex.keysForMsn(7794)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e72' })]);
-            expect(testIndex.keysForMsn(7795)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e73' })]);
-            expect(testIndex.keysForMsn(7796)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e74' })]);
-            expect(testIndex.keysForMsn(7797)).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x1e75' })]);
+            expect(testIndex.keysForMsn(7794)).to.equal([new AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e72' })]);
+            expect(testIndex.keysForMsn(7795)).to.equal([new AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e73' })]);
+            expect(testIndex.keysForMsn(7796)).to.equal([new AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e74' })]);
+            expect(testIndex.keysForMsn(7797)).to.equal([new AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x1e75' })]);
 
-            expect(testIndexSingle.keysForMsn(300)).to.equal([new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1234' })]);
+            expect(testIndexSingle.keysForMsn(300)).to.equal([new AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1234' })]);
             expect(testIndexSingle.keysForMsn(301)).to.not.exist();
             expect(testIndexSingle.keysForMsn(302)).to.equal([
-                new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x4321' }),
-                new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"skd://key53"', keyformat: '"com.apple.streamingkeydelivery"', keyformatversions: '"1"' })
+                new AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x4321' }),
+                new AttrList({ method: 'SAMPLE-AES', uri: '"skd://key53"', keyformat: '"com.apple.streamingkeydelivery"', keyformatversions: '"1"' })
             ]);
             expect(testIndexSingle.keysForMsn(303)).to.equal([
-                new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x4322' }),
-                new M3u8Parse.AttrList({ method: 'SAMPLE-AES', uri: '"skd://key53"', keyformat: '"com.apple.streamingkeydelivery"', keyformatversions: '"1"' })
+                new AttrList({ method: 'SAMPLE-AES', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x4322' }),
+                new AttrList({ method: 'SAMPLE-AES', uri: '"skd://key53"', keyformat: '"com.apple.streamingkeydelivery"', keyformatversions: '"1"' })
             ]);
         });
 
@@ -410,8 +409,8 @@ describe('M3U8Playlist', () => {
 
         it('should return segment data for valid sequence numbers', () => {
 
-            expect(testIndex.getSegment('7794')).to.be.an.instanceof(M3u8Parse.MediaSegment);
-            expect(testIndex.getSegment(7797)).to.be.an.instanceof(M3u8Parse.MediaSegment);
+            expect(testIndex.getSegment('7794')).to.be.an.instanceof(MediaSegment);
+            expect(testIndex.getSegment(7797)).to.be.an.instanceof(MediaSegment);
         });
 
         it('should return null for out of bounds sequence numbers', () => {
@@ -426,15 +425,15 @@ describe('M3U8Playlist', () => {
 
         it('should return computed independent segments attributes correctly', () => {
 
-            expect(testIndex.getSegment(7794, true)).to.be.an.instanceof(M3u8Parse.MediaSegment);
+            expect(testIndex.getSegment(7794, true)).to.be.an.instanceof(MediaSegment);
             expect(testIndex.getSegment(7794, true).program_time).to.equal(new Date('2013-10-29T11:34:13.000Z'));
             expect(testIndex.getSegment(7795, true).program_time).to.equal(new Date('2013-10-29T11:34:15.833Z'));
             expect(testIndex.getSegment(7796, true).program_time).to.equal(new Date('2013-10-29T11:34:30.833Z'));
             expect(testIndex.getSegment(7797, true).program_time).to.equal(new Date('2013-10-29T11:34:44.000Z'));
-            expect(testIndex.getSegment(7794, true).keys).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e72' })]);
-            expect(testIndex.getSegment(7795, true).keys).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e73' })]);
-            expect(testIndex.getSegment(7796, true).keys).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e74' })]);
-            expect(testIndex.getSegment(7797, true).keys).to.equal([new M3u8Parse.AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x1e75' })]);
+            expect(testIndex.getSegment(7794, true).keys).to.equal([new AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e72' })]);
+            expect(testIndex.getSegment(7795, true).keys).to.equal([new AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e73' })]);
+            expect(testIndex.getSegment(7796, true).keys).to.equal([new AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=52"', iv: '0x1e74' })]);
+            expect(testIndex.getSegment(7797, true).keys).to.equal([new AttrList({ method: 'AES-128', uri: '"https://priv.example.com/key.php?r=53"', iv: '0x1e75' })]);
             expect(testIndexSingle.getSegment(302, true).byterange).to.equal({ length: 300000, offset: 300000 });
             expect(testIndex.getSegment(7794, true).map).to.not.exist();
             expect(testIndex.getSegment(7797, true).map).to.not.exist();
@@ -444,31 +443,31 @@ describe('M3U8Playlist', () => {
 
             const index = new MediaPlaylist({
                 segments: [
-                    new M3u8Parse.MediaSegment({
+                    new MediaSegment({
                         parts: [
-                            new M3u8Parse.AttrList('URI="file1",BYTERANGE=100@50'),
-                            new M3u8Parse.AttrList('URI="file1",BYTERANGE=150'),
-                            new M3u8Parse.AttrList('URI="file1",BYTERANGE=50'),
-                            new M3u8Parse.AttrList('URI="file1",BYTERANGE=100@500'),
-                            new M3u8Parse.AttrList('URI="file2",BYTERANGE=150'),
-                            new M3u8Parse.AttrList('URI="file2",BYTERANGE=100'),
-                            new M3u8Parse.AttrList('URI="file3"'),
-                            new M3u8Parse.AttrList('URI="file3",BYTERANGE=150')
+                            new AttrList('URI="file1",BYTERANGE=100@50'),
+                            new AttrList('URI="file1",BYTERANGE=150'),
+                            new AttrList('URI="file1",BYTERANGE=50'),
+                            new AttrList('URI="file1",BYTERANGE=100@500'),
+                            new AttrList('URI="file2",BYTERANGE=150'),
+                            new AttrList('URI="file2",BYTERANGE=100'),
+                            new AttrList('URI="file3"'),
+                            new AttrList('URI="file3",BYTERANGE=150')
                         ]
                     })
                 ]
             });
 
-            expect(index.getSegment(0, true)).to.be.an.instanceof(M3u8Parse.MediaSegment);
+            expect(index.getSegment(0, true)).to.be.an.instanceof(MediaSegment);
             expect(index.getSegment(0, true).parts).to.equal([
-                new M3u8Parse.AttrList({ uri: '"file1"', byterange: '100@50' }),
-                new M3u8Parse.AttrList({ uri: '"file1"', byterange: '150@150' }),
-                new M3u8Parse.AttrList({ uri: '"file1"', byterange: '50@300' }),
-                new M3u8Parse.AttrList({ uri: '"file1"', byterange: '100@500' }),
-                new M3u8Parse.AttrList({ uri: '"file2"', byterange: '150' }),
-                new M3u8Parse.AttrList({ uri: '"file2"', byterange: '100' }),
-                new M3u8Parse.AttrList({ uri: '"file3"' }),
-                new M3u8Parse.AttrList({ uri: '"file3"', byterange: '150' })
+                new AttrList({ uri: '"file1"', byterange: '100@50' }),
+                new AttrList({ uri: '"file1"', byterange: '150@150' }),
+                new AttrList({ uri: '"file1"', byterange: '50@300' }),
+                new AttrList({ uri: '"file1"', byterange: '100@500' }),
+                new AttrList({ uri: '"file2"', byterange: '150' }),
+                new AttrList({ uri: '"file2"', byterange: '100' }),
+                new AttrList({ uri: '"file3"' }),
+                new AttrList({ uri: '"file3"', byterange: '150' })
             ]);
         });
     });
@@ -626,31 +625,31 @@ describe('M3U8Playlist', () => {
 
         it('should output valid index files', async () => {
 
-            const index = await M3u8Parse(testIndex.toString());
+            const index = await M3U8Parse(testIndex.toString());
             expect(index).to.exist();
             expect(testIndex).to.equal(index);
 
-            const index2 = await M3u8Parse(testIndexAlt.toString());
+            const index2 = await M3U8Parse(testIndexAlt.toString());
             expect(index2).to.exist();
             expect(testIndexAlt).to.equal(index2);
 
-            const index3 = await M3u8Parse(testIndexSingle.toString());
+            const index3 = await M3U8Parse(testIndexSingle.toString());
             expect(index3).to.exist();
             expect(testIndexSingle).to.equal(index3);
 
-            const index4 = await M3u8Parse(testIndexLl.toString());
+            const index4 = await M3U8Parse(testIndexLl.toString());
             expect(index4).to.exist();
             expect(testIndexLl).to.equal(index4);
         });
 
         it('should output valid master files', async () => {
 
-            const index = await M3u8Parse(masterIndex.toString());
+            const index = await M3U8Parse(masterIndex.toString());
             expect(index).to.exist();
             expect(masterIndex).to.equal(index);
 
-            const masterIndexV6 = await M3u8Parse(Fs.createReadStream(Path.join(fixtureDir, 'variant_v6.m3u8')));
-            const index2 = await M3u8Parse(masterIndexV6.toString());
+            const masterIndexV6 = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'variant_v6.m3u8')));
+            const index2 = await M3U8Parse(masterIndexV6.toString());
             expect(index2).to.exist();
             expect(masterIndexV6).to.equal(index2);
         });
@@ -678,13 +677,13 @@ describe('M3U8Playlist', () => {
 
             index.target_duration = 10;
             index.segments = [
-                new M3u8Parse.MediaSegment({
+                new MediaSegment({
                     uri: 'url',
                     duration: 10,
                     title: '',
                     vendor: new Map([['#EXT-MY-TEST', 'yeah!'], ['#EXT-MY-SIMPLE', false]])
                 }),
-                new M3u8Parse.MediaSegment({
+                new MediaSegment({
                     uri: 'url',
                     duration: 10,
                     title: '',
