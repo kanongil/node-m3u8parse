@@ -319,6 +319,10 @@ export class M3U8Playlist {
 
     lastMsn(includePartial = true): Msn {
 
+        if (this.segments.length === 0) {
+            return -1;
+        }
+
         const msn = this.media_sequence + this.segments.length - 1;
         return includePartial ? msn : msn - +this.getSegment(msn)!.isPartial();
     }

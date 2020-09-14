@@ -223,6 +223,7 @@ describe('M3U8Playlist', () => {
 
             expect(testIndex.lastMsn()).to.equal(7797);
             expect(masterIndex.lastMsn()).to.equal(-1);
+            expect(masterIndex.lastMsn(false)).to.equal(-1);
         });
     });
 
