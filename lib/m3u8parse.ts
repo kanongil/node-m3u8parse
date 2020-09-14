@@ -11,7 +11,7 @@ import Clone = require('clone');
 import Split = require('split');
 
 import { AttrList } from './attrlist';
-import { M3U8Playlist, M3U8Segment } from './m3u8playlist';
+import { MediaPlaylist, MasterPlaylist, MediaSegment } from './m3u8playlist';
 
 
 const internals = {
@@ -24,15 +24,17 @@ interface ParserOptions {
     extensions?: { [K: string]: boolean };
 }
 
+export type M3U8Playlist = MediaPlaylist | MasterPlaylist;
+
 export default function (input: string | Buffer, options?: ParserOptions): M3U8Playlist;
 export default function (input: Stream, options?: ParserOptions): Promise<M3U8Playlist>;
 
 export default function (input: Stream | string | Buffer, options: ParserOptions = {}): Promise<M3U8Playlist> | M3U8Playlist {
 
-    const m3u8 = new M3U8Playlist();
+    const m3u8 = {} as Partial<Omit<MediaPlaylist, 'master'> & Omit<MasterPlaylist, 'master'> & { master: boolean }>;
     let line_no = 0;
     const deferred: { promise: Promise<M3U8Playlist>; resolve: (val?: M3U8Playlist) => void; reject: (err: Error) => void } = {} as any;
-    let meta: M3U8Segment & { info?: AttrList } = {} as any;
+    let meta = {} as MediaSegment & { info?: AttrList };
 
     assertOk(input || input === '', 'Input must be a stream, string, or buffer');
 
@@ -102,7 +104,7 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
         }
         else if (m3u8.master) {
             meta.uri = line;
-            m3u8.variants.push({ uri: meta.uri, info: meta.info }); // FIXME: ??
+            (m3u8.variants ??= []).push({ uri: meta.uri, info: meta.info }); // FIXME: ??
             meta = {} as any;
         }
         else {
@@ -110,7 +112,7 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
                 return ReportError(new ParserError('Missing #EXTINF before media file URI', line, line_no));
             }
 
-            m3u8.segments.push(new M3U8Segment(line, meta, m3u8.version));
+            (m3u8.segments ??= []).push(new MediaSegment(line, meta, m3u8.version));
             meta = {} as any;
         }
 
@@ -195,7 +197,7 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
             const attrs: AttrList = new AttrList(arg);
             const id = attrs.get('group-id', AttrList.Types.String) || '#';
 
-            let list: AttrList[] & { type?: string } | undefined = m3u8.groups.get(id);
+            let list: AttrList[] & { type?: string } | undefined = (m3u8.groups ??= new Map()).get(id);
             if (!list) {
                 list = [];
                 m3u8.groups.set(id, list);
@@ -208,7 +210,7 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
         },
         '#EXT-X-I-FRAME-STREAM-INF': (arg) => {
 
-            m3u8.iframes.push(new AttrList(arg));
+            (m3u8.iframes ??= []).push(new AttrList(arg));
         },
         '#EXT-X-SESSION-DATA': (arg) => {
 
@@ -216,7 +218,7 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
             const id = attrs.quotedString('data-id');
 
             if (id) {
-                let list = m3u8.data.get(id);
+                let list = (m3u8.data ??= new Map()).get(id);
                 if (!list) {
                     list = [];
                     m3u8.data.set(id, list);
@@ -227,7 +229,7 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
         },
         '#EXT-X-SESSION-KEY': (arg) => {
 
-            m3u8.session_keys.push(new AttrList(arg));
+            (m3u8.session_keys ??= []).push(new AttrList(arg));
         },
         '#EXT-X-GAP': () => {
 
@@ -235,7 +237,7 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
         },
         '#EXT-X-DEFINE': (arg) => {
 
-            m3u8.defines.push(new AttrList(arg));
+            (m3u8.defines ??= []).push(new AttrList(arg));
         },
         '#EXT-X-PART-INF': (arg) => {
 
@@ -267,14 +269,15 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
         },
         '#EXT-X-SKIP': (arg) => {
 
-            m3u8.meta.skip = new AttrList(arg);
+            (m3u8.meta ??= Object.create(null)).skip = new AttrList(arg);
         }
     };
 
-    for (const [ext, entry] of M3U8Playlist._metas.entries()) {
+    for (const [ext, entry] of MediaPlaylist._metas.entries()) {
         extParser['#EXT-X-' + ext] = (arg) => {
 
-            (m3u8.meta[entry] = m3u8.meta[entry] || []).push(new AttrList(arg));
+            const m3u8meta = m3u8.meta ??= Object.create(null);
+            (m3u8meta[entry] ??= []).push(new AttrList(arg));
         };
     }
 
@@ -285,10 +288,12 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
         }
 
         if (Object.keys(meta).length) {
-            m3u8.segments.push(new M3U8Segment(undefined, meta, m3u8.version));    // Append a partial segment
+            (m3u8.segments ??= []).push(new MediaSegment(undefined, meta, m3u8.version));    // Append a partial segment
         }
 
-        return deferred.promise ? deferred.resolve(m3u8) : m3u8;
+        const result = m3u8.master ? new MasterPlaylist(m3u8 as any) : new MediaPlaylist(m3u8 as any);
+
+        return deferred.promise ? deferred.resolve(result) : result;
     };
 
     if (input instanceof Stream) {

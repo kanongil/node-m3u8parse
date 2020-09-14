@@ -30,6 +30,12 @@ const internals = {
         }
     },
 
+    formatMsn(obj?: Msn) {
+
+        const type = typeof obj;
+        return (obj === undefined || type === 'number' || type === 'bigint') ? obj : +obj;
+    },
+
     tryBigInt(value: unknown): bigint | undefined {
 
         try {
@@ -138,120 +144,32 @@ interface Meta {
 }
 
 
-export class M3U8Playlist {
+interface IRewritableUris {
+    rewriteUris(mapFn: UriMapFunction): this;
+}
 
-    public static readonly Type = PlaylistType;
-    public static readonly _metas = new Map(Object.entries(ArrayMetas));
 
-    public static castAsMaster(index: M3U8Playlist): MasterPlaylist {
+class BasePlaylist implements IRewritableUris {
 
-        if (!index.master) {
-            throw new Error('Cannot cast a media playlist');
-        }
-
-        return index as MasterPlaylist;
-    }
-
-    public static castAsMedia(index: M3U8Playlist): MediaPlaylist {
-
-        if (index.master) {
-            throw new Error('Cannot cast a master playlist');
-        }
-
-        return index as MediaPlaylist;
-    }
-
-    master: boolean;
+    readonly master: boolean;
     version: number;
-    allow_cache?: boolean;
-    i_frames_only: boolean;
-    target_duration?: number;
-    media_sequence: Msn;
-    type?: PlaylistType | string | undefined;
-    ended: boolean;
-    discontinuity_sequence: Msn;
-    start: AttrList;
-    independent_segments: boolean;
 
-    segments: M3U8Segment[];
-    variants: Variant[];
-    groups: Map<string, AttrList[]>;
-    iframes: AttrList[];
-    data: Map<string, AttrList[]>;
-    session_keys: AttrList[];
-    meta: Meta;
+    start?: AttrList;
+    independent_segments?: boolean;
     defines: AttrList[];
-
-    server_control?: AttrList;
-    part_info?: AttrList;
 
     vendor?: Iterable<[string, string | null]>;
 
-    constructor(obj?: M3U8Playlist | MasterPlaylist | MediaPlaylist) {
+    constructor(obj?: BasePlaylist) {
 
-        obj = (obj! || {}) as M3U8Playlist;
+        obj = obj! || {};
 
         this.master = obj.master || false;
 
-        // Initialize to default values
-
-        this.version = obj.version || 1; // V1
-        this.i_frames_only = obj.i_frames_only || false; // V4
-        this.target_duration = obj.target_duration || undefined;
-        this.media_sequence = (obj as any).first_seq_no || obj.media_sequence || 0;
-        this.type = obj.type; // V3+
-        this.ended = obj.ended || false;
-        this.discontinuity_sequence = obj.discontinuity_sequence; // V6
-        this.start = new AttrList(obj.start); // V6
-        this.independent_segments = obj.independent_segments; // V6
-
-        if (obj.allow_cache !== undefined) {
-            this.allow_cache = !!obj.allow_cache;
-        }
-
-        this.segments = [];
-        if (obj.segments) {
-            this.segments = obj.segments.map((segment) => new M3U8Segment(segment));
-        }
-
-        // For master streams
-
-        this.variants = Clone(obj.variants) || [];
-        for (const variant of this.variants) {
-            if (variant.info) {
-                variant.info = new AttrList(variant.info);
-            }
-        }
-
-        this.groups = internals.cloneAttrMap(obj.groups);
-
-        this.iframes = internals.cloneAttrArray(obj.iframes); // V4
-
-        this.data = internals.cloneAttrMap(obj.data); // V7
-        this.session_keys = internals.cloneAttrArray(obj.session_keys); // V7
-
-        this.meta = Object.create(null);
-        if (obj.meta) {
-            if (obj.meta.skip) {
-                this.meta.skip = new AttrList(obj.meta.skip);
-            }
-
-            for (const key of M3U8Playlist._metas.values()) {
-                if (obj.meta[key]) {
-                    this.meta[key] = internals.cloneAttrArray(obj.meta[key]);
-                }
-            }
-        }
-
-        this.defines = internals.cloneAttrArray(obj.defines); // V8
-
-        if (obj.server_control) {
-            this.server_control = new AttrList(obj.server_control);
-        }
-
-        if (obj.part_info) {
-            this.part_info = new AttrList(obj.part_info);
-        }
+        this.version = obj.version || 1;
+        this.start = obj.start ? new AttrList(obj.start) : undefined;
+        this.independent_segments = obj.independent_segments !== undefined ? !!obj.independent_segments : undefined;
+        this.defines = internals.cloneAttrArray(obj.defines);
 
         // Custom vendor extensions
 
@@ -267,7 +185,243 @@ export class M3U8Playlist {
         }
     }
 
-    private _lastSegmentProperty<P extends keyof M3U8Segment>(key: P, msn: Msn | bigint, incrFn: (segment: M3U8Segment) => boolean): M3U8Segment[P] | undefined {
+    rewriteUris(mapFn: UriMapFunction): this {
+
+        return this;
+    }
+
+    toString(): string {
+
+        const { stringifyAttrs } = PlaylistWriter;
+
+        const m3u8 = new PlaylistWriter('#EXTM3U');
+
+        if (this.version > 1) {
+            m3u8.ext('VERSION', this.version);
+        }
+
+        for (const key of this.defines) {
+            m3u8.ext('DEFINE', stringifyAttrs(key));
+        }
+
+        m3u8.ext('START', stringifyAttrs(this.start));
+        m3u8.ext('INDEPENDENT-SEGMENTS', !!this.independent_segments);
+
+        if (this.vendor) {
+
+            // Add vendor extensions
+
+            for (const [ext, value] of this.vendor) {
+                let line = ext;
+
+                if (internals.isStringish(value)) {
+                    line += ':' + value;
+                }
+
+                m3u8.push(line);
+            }
+        }
+
+        return m3u8.toString();
+    }
+}
+
+export class MasterPlaylist extends BasePlaylist {
+
+    static cast(index: MediaPlaylist | MasterPlaylist): MasterPlaylist | never {
+
+        if (!index.master) {
+            throw new Error('Cannot cast a media playlist');
+        }
+
+        return index as MasterPlaylist;
+    }
+
+    readonly master: true = true;
+
+    variants: Variant[];
+    groups: Map<string, AttrList[]>;
+    iframes: AttrList[];
+    data: Map<string, AttrList[]>;
+    session_keys: AttrList[];
+
+    constructor(obj?: MasterPlaylist) {
+
+        super(obj);
+
+        obj = obj! || {};
+
+        this.master = true;
+        if (obj.master !== undefined && !!obj.master !== this.master) {
+            throw new Error('Cannot create from media playlist');
+        }
+
+        this.variants = Clone(obj.variants) || [];
+        for (const variant of this.variants) {
+            if (variant.info) {
+                variant.info = new AttrList(variant.info);
+            }
+        }
+
+        this.groups = internals.cloneAttrMap(obj.groups);
+        this.iframes = internals.cloneAttrArray(obj.iframes);
+        this.data = internals.cloneAttrMap(obj.data);
+        this.session_keys = internals.cloneAttrArray(obj.session_keys);
+    }
+
+    rewriteUris(mapFn: UriMapFunction): this {
+
+        const { rewriteAttrs, rewriteMappedAttrs } = internals;
+
+        for (const variant of this.variants) {
+            const newUri = mapFn(variant.uri, 'variant', variant);
+            if (internals.isStringish(newUri)) {
+                variant.uri = newUri!;
+            }
+        }
+
+        rewriteAttrs(mapFn, this.iframes, 'iframe');
+        rewriteMappedAttrs(mapFn, this.groups, 'group');
+        rewriteMappedAttrs(mapFn, this.data, 'data');
+        rewriteAttrs(mapFn, this.session_keys, 'session-key');
+
+        return super.rewriteUris(mapFn);
+    }
+
+    toString(): string {
+
+        const { stringifyAttrs, streamInfAttrs } = PlaylistWriter;
+
+        const m3u8 = new PlaylistWriter(super.toString());
+
+        this.session_keys.forEach((key) => {
+
+            m3u8.ext('SESSION-KEY', stringifyAttrs(key));
+        });
+
+        // add non-standard marlin entry
+
+        if ((this as any).keys && Array.isArray((this as any).keys)) {
+            (this as any).forEach((key: AttrList) => {
+
+                m3u8.ext('KEY', stringifyAttrs(key));
+            });
+        }
+
+        for (const list of this.data.values()) {
+            for (const data of list) {
+                m3u8.ext('SESSION-DATA', stringifyAttrs(data));
+            }
+        }
+
+        for (const list of this.groups.values()) {
+            for (const group of list) {
+                m3u8.ext('MEDIA', stringifyAttrs(group));
+            }
+        }
+
+        this.iframes.forEach((iframe) => {
+
+            m3u8.ext('I-FRAME-STREAM-INF', streamInfAttrs(iframe));
+        });
+
+        this.variants.forEach((variant) => {
+
+            if (variant.info) {
+                m3u8.ext('STREAM-INF', streamInfAttrs(variant.info));
+            }
+
+            m3u8.push(variant.uri);
+        });
+
+        return m3u8.toString() + '\n';
+    }
+}
+
+
+export class MediaPlaylist extends BasePlaylist {
+
+    public static readonly Type = PlaylistType;
+    public static readonly _metas = new Map(Object.entries(ArrayMetas));
+
+    public static cast(index: MediaPlaylist | MasterPlaylist): MediaPlaylist {
+
+        if (index.master) {
+            throw new Error('Cannot cast a master playlist');
+        }
+
+        return index as MediaPlaylist;
+    }
+
+    readonly master: false = false;
+
+    target_duration: number;
+    media_sequence: Msn;
+    discontinuity_sequence?: Msn;
+    type?: PlaylistType | string;
+
+    i_frames_only: boolean;
+    ended: boolean;
+    /** @deprecated */
+    allow_cache?: boolean;
+
+    segments: MediaSegment[];
+
+    meta: Meta;
+
+    server_control?: AttrList;
+    part_info?: AttrList;
+
+    constructor(obj?: MediaPlaylist) {
+
+        super(obj);
+
+        obj = obj! || {};
+
+        this.master = false;
+        if (obj.master !== undefined && !!obj.master !== this.master) {
+            throw new Error('Cannot create from master playlist');
+        }
+
+        this.target_duration = +obj.target_duration || Number.NaN;
+        this.media_sequence =  (internals.formatMsn(obj.media_sequence) ?? internals.formatMsn((obj as any).first_seq_no)) || 0;
+        this.discontinuity_sequence = internals.formatMsn(obj.discontinuity_sequence);
+        this.type = obj.type !== undefined ? `${obj.type}` : undefined;
+
+        this.i_frames_only = !!obj.i_frames_only;
+        this.ended = !!obj.ended;
+        if (obj.allow_cache !== undefined) {
+            this.allow_cache = !!obj.allow_cache;
+        }
+
+        this.segments = [];
+        if (obj.segments) {
+            this.segments = obj.segments.map((segment) => new MediaSegment(segment));
+        }
+
+        this.meta = Object.create(null);
+        if (obj.meta) {
+            if (obj.meta.skip) {
+                this.meta.skip = new AttrList(obj.meta.skip);
+            }
+
+            for (const key of MediaPlaylist._metas.values()) {
+                if (obj.meta[key]) {
+                    this.meta[key] = internals.cloneAttrArray(obj.meta[key]);
+                }
+            }
+        }
+
+        if (obj.server_control) {
+            this.server_control = new AttrList(obj.server_control);
+        }
+
+        if (obj.part_info) {
+            this.part_info = new AttrList(obj.part_info);
+        }
+    }
+
+    private _lastSegmentProperty<P extends keyof MediaSegment>(key: P, msn: Msn | bigint, incrFn: (segment: MediaSegment) => boolean): MediaSegment[P] | undefined {
 
         let segment;
         while ((segment = this.getSegment(msn--)) !== null) {
@@ -362,7 +516,7 @@ export class M3U8Playlist {
     dateForMsn(msn: Msn | bigint): Date | null {
 
         let elapsed = 0;
-        const program_time = this._lastSegmentProperty('program_time', msn, ({ duration = 0, discontinuity }: M3U8Segment) => {
+        const program_time = this._lastSegmentProperty('program_time', msn, ({ duration = 0, discontinuity }) => {
 
             elapsed += duration;
             return discontinuity; // abort on discontinuity
@@ -517,13 +671,13 @@ export class M3U8Playlist {
 
     mapForMsn(msn: Msn | bigint): AttrList | undefined {
 
-        return this._lastSegmentProperty('map', msn, ({ discontinuity }: M3U8Segment) => !!discontinuity); // abort on discontinuity
+        return this._lastSegmentProperty('map', msn, ({ discontinuity }: MediaSegment) => !!discontinuity); // abort on discontinuity
     }
 
-    getSegment(msn: Msn | bigint, independent?: false): M3U8Segment | null;
-    getSegment(msn: Msn | bigint, independent: true): M3U8IndependentSegment | null;
+    getSegment(msn: Msn | bigint, independent?: false): MediaSegment | null;
+    getSegment(msn: Msn | bigint, independent: true): IndependentSegment | null;
 
-    getSegment(msn: Msn | bigint, independent = false): M3U8Segment | null {
+    getSegment(msn: Msn | bigint, independent = false): MediaSegment | null {
 
         msn = internals.tryBigInt(msn)!;
         if (msn === undefined) {
@@ -533,7 +687,7 @@ export class M3U8Playlist {
         const index = Number(msn - BigInt(this.media_sequence));
         let segment = this.segments[index] || null;
         if (independent && segment) {
-            segment = new M3U8Segment(segment);
+            segment = new MediaSegment(segment);
             // EXT-X-KEY, EXT-X-MAP, EXT-X-PROGRAM-DATE-TIME, EXT-X-BYTERANGE needs to be individualized
             segment.program_time = this.dateForMsn(msn);
             segment.keys = this.keysForMsn(msn);
@@ -576,19 +730,7 @@ export class M3U8Playlist {
 
     rewriteUris(mapFn: UriMapFunction): this {
 
-        const { rewriteAttrs, rewriteMappedAttrs } = internals;
-
-        for (const variant of this.variants) {
-            const newUri = mapFn(variant.uri, 'variant', variant);
-            if (internals.isStringish(newUri)) {
-                variant.uri = newUri!;
-            }
-        }
-
-        rewriteAttrs(mapFn, this.iframes, 'iframe');
-        rewriteMappedAttrs(mapFn, this.groups, 'group');
-        rewriteMappedAttrs(mapFn, this.data, 'data');
-        rewriteAttrs(mapFn, this.session_keys, 'session-key');
+        const { rewriteAttrs } = internals;
 
         for (const segment of this.segments) {
             segment.rewriteUris(mapFn);
@@ -599,108 +741,37 @@ export class M3U8Playlist {
             rewriteAttrs(mapFn, this.meta.rendition_reports, 'rendition-report');
         }
 
-        return this;
+        return super.rewriteUris(mapFn);
     }
 
     toString(): string {
 
-        const { stringifyAttrs, streamInfAttrs } = PlaylistWriter;
+        const { stringifyAttrs } = PlaylistWriter;
 
-        const m3u8 = new PlaylistWriter('#EXTM3U');
+        const m3u8 = new PlaylistWriter(super.toString());
 
-        if (this.version > 1) {
-            m3u8.ext('VERSION', this.version);
+        m3u8.ext('TARGETDURATION', this.target_duration);
+
+        m3u8.ext('PLAYLIST-TYPE', this.type);
+
+        if (this.version < 7 && this.allow_cache === false) {
+            m3u8.ext('ALLOW-CACHE', 'NO');
         }
 
-        for (const key of this.defines) {
-            m3u8.ext('DEFINE', stringifyAttrs(key));
+        m3u8.ext('SERVER-CONTROL', stringifyAttrs(this.server_control));
+        m3u8.ext('PART-INF', stringifyAttrs(this.part_info));
+
+        const mediaSequence = parseInt(this.media_sequence as unknown as string, 10) || 0;
+        if (mediaSequence !== 0) {
+            m3u8.ext('MEDIA-SEQUENCE', mediaSequence);
         }
 
-        if (this.master) {
-            this.session_keys.forEach((key) => {
-
-                m3u8.ext('SESSION-KEY', stringifyAttrs(key));
-            });
-
-            // add non-standard marlin entry
-
-            if ((this as any).keys && Array.isArray((this as any).keys)) {
-                (this as any).forEach((key: AttrList) => {
-
-                    m3u8.ext('KEY', stringifyAttrs(key));
-                });
-            }
-        }
-        else {
-            m3u8.ext('TARGETDURATION', this.target_duration);
-
-            m3u8.ext('PLAYLIST-TYPE', this.type);
-
-            if (this.version < 7 && this.allow_cache === false) {
-                m3u8.ext('ALLOW-CACHE', 'NO');
-            }
-
-            m3u8.ext('SERVER-CONTROL', stringifyAttrs(this.server_control));
-            m3u8.ext('PART-INF', stringifyAttrs(this.part_info));
-
-            const mediaSequence = parseInt(this.media_sequence as unknown as string, 10) || 0;
-            if (mediaSequence !== 0) {
-                m3u8.ext('MEDIA-SEQUENCE', mediaSequence);
-            }
-
-            if (this.type !== PlaylistType.VOD && this.type !== PlaylistType.EVENT) {
-                m3u8.ext('DISCONTINUITY-SEQUENCE', parseInt(this.discontinuity_sequence as unknown as string, 10));
-            }
-
-            if (this.version >= 4) {
-                m3u8.ext('I-FRAMES-ONLY', !!this.i_frames_only);
-            }
+        if (this.type !== PlaylistType.VOD && this.type !== PlaylistType.EVENT) {
+            m3u8.ext('DISCONTINUITY-SEQUENCE', parseInt(this.discontinuity_sequence as unknown as string, 10));
         }
 
-        m3u8.ext('START', stringifyAttrs(this.start));
-        m3u8.ext('INDEPENDENT-SEGMENTS', !!this.independent_segments);
-
-        if (this.vendor) {
-
-            // Add vendor extensions
-
-            for (const [ext, value] of this.vendor) {
-                let line = ext;
-
-                if (internals.isStringish(value)) {
-                    line += ':' + value;
-                }
-
-                m3u8.push(line);
-            }
-        }
-
-        if (this.master) {
-            for (const list of this.data.values()) {
-                for (const data of list) {
-                    m3u8.ext('SESSION-DATA', stringifyAttrs(data));
-                }
-            }
-
-            for (const list of this.groups.values()) {
-                for (const group of list) {
-                    m3u8.ext('MEDIA', stringifyAttrs(group));
-                }
-            }
-
-            this.iframes.forEach((iframe) => {
-
-                m3u8.ext('I-FRAME-STREAM-INF', streamInfAttrs(iframe));
-            });
-
-            this.variants.forEach((variant) => {
-
-                if (variant.info) {
-                    m3u8.ext('STREAM-INF', streamInfAttrs(variant.info));
-                }
-
-                m3u8.push(variant.uri);
-            });
+        if (this.version >= 4) {
+            m3u8.ext('I-FRAMES-ONLY', !!this.i_frames_only);
         }
 
         const meta = this.meta || {};
@@ -711,7 +782,7 @@ export class M3U8Playlist {
             m3u8.push(...segment.toString().split('\n'));
         }
 
-        for (const [ext, entry] of M3U8Playlist._metas.entries()) {
+        for (const [ext, entry] of MediaPlaylist._metas.entries()) {
             for (const key of meta[entry] || []) {
                 m3u8.ext(ext, stringifyAttrs(key));
             }
@@ -724,24 +795,7 @@ export class M3U8Playlist {
 }
 
 
-type SharedProperties = 'master' | 'version' | 'independent_segments' | 'start' | 'defines' | 'vendor';
-type DeprecatedProperties = 'allow_cache';
-type MasterPlaylistProperties = 'variants' | 'groups' | 'iframes' | 'data' | 'session_keys';
-type MediaPlaylistProperties = 'segments' | 'meta' | 'target_duration' | 'media_sequence' | 'discontinuity_sequence' | 'ended' | 'type' | 'i_frames_only' | 'part_info' | 'server_control';
-
-type AllPlaylistMethods = Exclude<keyof M3U8Playlist, SharedProperties | DeprecatedProperties | MasterPlaylistProperties | MediaPlaylistProperties | 'toString'>;
-
-export type MasterPlaylist = Pick<M3U8Playlist, SharedProperties | MasterPlaylistProperties> & {
-    readonly master: true;
-    rewriteUris(...args: Parameters<M3U8Playlist['rewriteUris']>): MasterPlaylist;
-};
-
-export type MediaPlaylist = Pick<M3U8Playlist, SharedProperties | AllPlaylistMethods | MediaPlaylistProperties> & {
-    readonly master: false;
-    rewriteUris(...args: Parameters<M3U8Playlist['rewriteUris']>): MediaPlaylist;
-};
-
-export class M3U8Segment {
+export class MediaSegment implements IRewritableUris {
 
     duration?: number;
     title?: string;
@@ -758,26 +812,26 @@ export class M3U8Segment {
     vendor?: Iterable<[string, string | null]>;
 
     constructor(obj?: unknown);
-    constructor(uri: string | typeof URL | undefined, meta: M3U8Segment, version?: number);
+    constructor(uri: string | typeof URL | undefined, meta: MediaSegment, version?: number);
 
-    constructor(uri?: string | typeof URL, meta?: M3U8Segment, version?: number) {
+    constructor(uri?: string | typeof URL, meta?: MediaSegment, version?: number) {
 
         if (uri instanceof URL) {
             uri = uri.href;
         }
 
         if (uri && typeof uri === 'object') {
-            meta = uri as M3U8Segment;
+            meta = uri as MediaSegment;
             uri = meta.uri as string;
             version = 10000;
         }
 
-        meta = meta || {} as M3U8Segment;
+        meta = meta || {} as MediaSegment;
 
         this.duration = meta.duration;
         this.title = meta.title;
         this.uri = uri as string;
-        this.discontinuity = meta.discontinuity || false;
+        this.discontinuity = !!meta.discontinuity;
 
         // optional
         if (meta.program_time) {
@@ -904,8 +958,8 @@ export class M3U8Segment {
 }
 
 
-export type M3U8IndependentSegment = M3U8Segment & {
-    byterange?: Required<Byterange>;
+export type IndependentSegment = MediaSegment & {
+    byterange?: Byterange;
 };
 
 
