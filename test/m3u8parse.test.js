@@ -445,14 +445,14 @@ describe('M3U8Playlist', () => {
                 segments: [
                     new MediaSegment({
                         parts: [
-                            new AttrList('URI="file1",BYTERANGE=100@50'),
-                            new AttrList('URI="file1",BYTERANGE=150'),
-                            new AttrList('URI="file1",BYTERANGE=50'),
-                            new AttrList('URI="file1",BYTERANGE=100@500'),
-                            new AttrList('URI="file2",BYTERANGE=150'),
-                            new AttrList('URI="file2",BYTERANGE=100'),
+                            new AttrList('URI="file1",BYTERANGE="100@50"'),
+                            new AttrList('URI="file1",BYTERANGE="150"'),
+                            new AttrList('URI="file1",BYTERANGE="50"'),
+                            new AttrList('URI="file1",BYTERANGE="100@500"'),
+                            new AttrList('URI="file2",BYTERANGE="150"'),
+                            new AttrList('URI="file2",BYTERANGE="100"'),
                             new AttrList('URI="file3"'),
-                            new AttrList('URI="file3",BYTERANGE=150')
+                            new AttrList('URI="file3",BYTERANGE="150"')
                         ]
                     })
                 ]
@@ -460,14 +460,14 @@ describe('M3U8Playlist', () => {
 
             expect(index.getSegment(0, true)).to.be.an.instanceof(MediaSegment);
             expect(index.getSegment(0, true).parts).to.equal([
-                new AttrList({ uri: '"file1"', byterange: '100@50' }),
-                new AttrList({ uri: '"file1"', byterange: '150@150' }),
-                new AttrList({ uri: '"file1"', byterange: '50@300' }),
-                new AttrList({ uri: '"file1"', byterange: '100@500' }),
-                new AttrList({ uri: '"file2"', byterange: '150' }),
-                new AttrList({ uri: '"file2"', byterange: '100' }),
+                new AttrList({ uri: '"file1"', byterange: '"100@50"' }),
+                new AttrList({ uri: '"file1"', byterange: '"150@150"' }),
+                new AttrList({ uri: '"file1"', byterange: '"50@300"' }),
+                new AttrList({ uri: '"file1"', byterange: '"100@500"' }),
+                new AttrList({ uri: '"file2"', byterange: '"150"' }),
+                new AttrList({ uri: '"file2"', byterange: '"100"' }),
                 new AttrList({ uri: '"file3"' }),
-                new AttrList({ uri: '"file3"', byterange: '150' })
+                new AttrList({ uri: '"file3"', byterange: '"150"' })
             ]);
         });
     });
