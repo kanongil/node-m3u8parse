@@ -12,7 +12,7 @@ type Byterange = {
     length: number;
 };
 
-type UriMapFunction = (uri: string | undefined, type: string, data: unknown) => string | undefined;
+type UriMapFunction = (uri: string | undefined, type: string, data: unknown) => string | undefined | void;
 
 
 const internals = {
@@ -283,8 +283,8 @@ export class MasterPlaylist extends BasePlaylist {
 
         for (const variant of this.variants) {
             const newUri = mapFn(variant.uri, 'variant', variant);
-            if (internals.isStringish(newUri)) {
-                variant.uri = newUri!;
+            if (newUri !== undefined && internals.isStringish(newUri)) {
+                variant.uri = newUri;
             }
         }
 
