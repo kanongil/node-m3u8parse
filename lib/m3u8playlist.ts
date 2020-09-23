@@ -895,7 +895,7 @@ export class MediaSegment implements IRewritableUris {
 
         if (internals.isStringish(this.uri)) {
             const newUri = mapFn(this.uri, 'segment', this);
-            if (internals.isStringish(newUri)) {
+            if (newUri !== undefined && internals.isStringish(newUri)) {
                 this.uri = newUri;
             }
         }
