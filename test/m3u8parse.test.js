@@ -194,6 +194,22 @@ describe('M3U8Playlist', () => {
             expect(testIndex.ended).to.be.false();
             expect(testIndex.isLive()).to.be.true();
         });
+
+        it('should return always return false for VOD playlist', () => {
+
+            const vodPlaylist = new MediaPlaylist({
+                type: 'VOD',
+                ended: false
+            });
+
+            expect(vodPlaylist.ended).to.be.false();
+            expect(vodPlaylist.isLive()).to.be.false();
+        });
+
+        it('should return false for master playlist', () => {
+
+            expect(masterIndex.isLive()).to.be.false();
+        });
     });
 
     describe('#startMsn()', () => {

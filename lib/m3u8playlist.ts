@@ -185,6 +185,14 @@ class BasePlaylist implements IRewritableUris {
         }
     }
 
+    /**
+     * Returns true if the playlist is expected to be updated by the server.
+     */
+    isLive(): boolean {
+
+        return false;
+    }
+
     rewriteUris(mapFn: UriMapFunction): this {
 
         return this;
@@ -438,15 +446,15 @@ export class MediaPlaylist extends BasePlaylist {
         return undefined;
     }
 
+    isLive(): boolean {
+
+        return !(this.ended || this.type === PlaylistType.VOD);
+    }
+
     totalDuration(): number {
 
         // TODO: include parts ????
         return this.segments.reduce((sum, segment) => sum + (segment.duration || 0), 0);
-    }
-
-    isLive(): boolean {
-
-        return !(this.ended || this.type === PlaylistType.VOD);
     }
 
     startMsn(full = false): Msn {
