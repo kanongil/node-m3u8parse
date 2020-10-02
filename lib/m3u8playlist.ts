@@ -160,7 +160,7 @@ class BasePlaylist implements IRewritableUris {
 
     vendor?: Iterable<[string, string | null]>;
 
-    constructor(obj?: BasePlaylist) {
+    constructor(obj?: Readonly<BasePlaylist>) {
 
         obj = obj! || {};
 
@@ -253,7 +253,7 @@ export class MasterPlaylist extends BasePlaylist {
     data: Map<string, AttrList[]>;
     session_keys: AttrList[];
 
-    constructor(obj?: MasterPlaylist) {
+    constructor(obj?: Readonly<MasterPlaylist>) {
 
         super(obj);
 
@@ -380,7 +380,7 @@ export class MediaPlaylist extends BasePlaylist {
     server_control?: AttrList;
     part_info?: AttrList;
 
-    constructor(obj?: MediaPlaylist) {
+    constructor(obj?: Readonly<MediaPlaylist>) {
 
         super(obj);
 
