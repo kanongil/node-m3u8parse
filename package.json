@@ -33,6 +33,7 @@
     "@hapi/eslint-plugin": "^5.0.0",
     "@hapi/lab": "^24.0.0",
     "@types/clone": "^2.1.0",
+    "@types/node": "^14.14.6",
     "@types/split": "^1.0.0",
     "@typescript-eslint/eslint-plugin": "^4.0.1",
     "@typescript-eslint/parser": "^4.0.1",
