@@ -4,7 +4,7 @@ Structural parsing of [Apple HTTP Live Streaming](http://tools.ietf.org/html/dra
 
 This module is tested and is used in production systems.
 
-[![Build Status](https://travis-ci.org/kanongil/node-m3u8parse.svg?branch=master)](https://travis-ci.org/kanongil/node-m3u8parse)
+![Node.js CI](https://github.com/kanongil/node-m3u8parse/workflows/Node.js%20CI/badge.svg)
 
 ## TODO
 
