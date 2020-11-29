@@ -309,11 +309,11 @@ export class MasterPlaylist extends BasePlaylist {
 
         // add non-standard marlin entry
 
-        if ((this as any).keys && Array.isArray((this as any).keys)) {
-            (this as any).forEach((key: AttrList) => {
-
+        const keys = (this as any as MediaSegment).keys;
+        if (keys && Array.isArray(keys)) {
+            for (const key of keys) {
                 m3u8.ext('KEY', stringifyAttrs(key));
-            });
+            }
         }
 
         for (const list of this.data.values()) {
