@@ -33,7 +33,7 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
 
     const m3u8 = {} as Partial<Omit<MediaPlaylist, 'master'> & Omit<MasterPlaylist, 'master'> & { master: boolean }>;
     let line_no = 0;
-    const deferred: { promise: Promise<M3U8Playlist>; resolve: (val?: M3U8Playlist) => void; reject: (err: Error) => void } = {} as any;
+    const deferred: { promise: Promise<M3U8Playlist>; resolve: (val: M3U8Playlist) => void; reject: (err: Error) => void } = {} as any;
     let meta = {} as MediaSegment & { info?: AttrList };
 
     assertOk(input || input === '', 'Input must be a stream, string, or buffer');
