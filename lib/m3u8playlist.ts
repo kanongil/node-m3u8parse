@@ -810,9 +810,9 @@ export class MediaSegment implements IRewritableUris {
     uri?: string;
     discontinuity: boolean;
 
-    program_time? : Date | null;
+    program_time?: Date | null;
     keys?: AttrList[];
-    byterange?: { offset? : number; length: number };
+    byterange?: { offset?: number; length: number };
     map?: AttrList;
     gap?: boolean;
     parts?: AttrList[];
@@ -986,7 +986,7 @@ class PlaylistWriter {
         return attrs.size > 0 ? attrs.toString() : undefined;
     }
 
-    static streamInfAttrs(obj: AttrList, version? : number) {
+    static streamInfAttrs(obj: AttrList, version?: number) {
 
         const attrs = new AttrList(obj);
         if (version! >= 6) {
@@ -998,7 +998,7 @@ class PlaylistWriter {
 
     _list: string[];
 
-    constructor(header? : string) {
+    constructor(header?: string) {
 
         this._list = header ? [header] : [];
     }

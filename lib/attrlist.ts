@@ -120,7 +120,7 @@ export class AttrList extends Map<Token, unknown> {
         return super.delete(tokenify(attr));
     }
 
-    decimalInteger(attrName: string, value? : number | bigint): bigint {
+    decimalInteger(attrName: string, value?: number | bigint): bigint {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
@@ -225,7 +225,7 @@ export class AttrList extends Map<Token, unknown> {
         return parseFloat(super.get(name) as string);
     }
 
-    quotedString(attrName: string, value? : unknown): string | undefined {
+    quotedString(attrName: string, value?: unknown): string | undefined {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
@@ -263,7 +263,7 @@ export class AttrList extends Map<Token, unknown> {
     }
 
     /* unofficial type */
-    decimalByterange(attrName: string, value? : Byterange): Byterange | undefined {
+    decimalByterange(attrName: string, value?: Byterange): Byterange | undefined {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {

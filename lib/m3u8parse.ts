@@ -38,7 +38,7 @@ export default function (input: Stream | Readable | string | Buffer, options: Pa
     let deferred: { promise: Promise<M3U8Playlist>; resolve: (val: M3U8Playlist) => void; reject: (err: Error) => void };
     let meta = {} as MediaSegment & { info?: AttrList };
 
-    assertOk(input || input === '', 'Input must be a stream, string, or buffer');
+    assertOk(input instanceof Stream || typeof input === 'string' || Buffer.isBuffer(input), 'Input must be a stream, string, or buffer');
 
     const ReportError = (err: Error) => {
 
@@ -320,10 +320,6 @@ export default function (input: Stream | Readable | string | Buffer, options: Pa
         });
     }
 
-    if (typeof input !== 'string') {
-        throw Error('Must be a string');
-    }
-
     const lines = (Buffer.isBuffer(input) ? input.toString('utf-8') : input).split(/\r?\n/);
     if (lines[0] === '') {
         lines.shift();
@@ -345,7 +341,7 @@ export class ParserError extends Error {
     lineNumber: number;
 
     // eslint-disable-next-line @typescript-eslint/ban-types
-    constructor(msg: string, line: string, line_no: number, constr? : Function) {
+    constructor(msg: string, line: string, line_no: number, constr?: Function) {
 
         super();
 
