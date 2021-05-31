@@ -1,3 +1,5 @@
+import type { Readable } from 'readable-stream';
+
 import { ok as assertOk } from 'assert';
 import { Stream } from 'stream';
 
@@ -27,20 +29,20 @@ interface ParserOptions {
 export type M3U8Playlist = MediaPlaylist | MasterPlaylist;
 
 export default function (input: string | Buffer, options?: ParserOptions): M3U8Playlist;
-export default function (input: Stream, options?: ParserOptions): Promise<M3U8Playlist>;
+export default function (input: Stream | Readable, options?: ParserOptions): Promise<M3U8Playlist>;
 
-export default function (input: Stream | string | Buffer, options: ParserOptions = {}): Promise<M3U8Playlist> | M3U8Playlist {
+export default function (input: Stream | Readable | string | Buffer, options: ParserOptions = {}): Promise<M3U8Playlist> | M3U8Playlist {
 
     const m3u8 = {} as Partial<Omit<MediaPlaylist, 'master'> & Omit<MasterPlaylist, 'master'> & { master: boolean }>;
     let line_no = 0;
-    const deferred: { promise: Promise<M3U8Playlist>; resolve: (val: M3U8Playlist) => void; reject: (err: Error) => void } = {} as any;
+    let deferred: { promise: Promise<M3U8Playlist>; resolve: (val: M3U8Playlist) => void; reject: (err: Error) => void };
     let meta = {} as MediaSegment & { info?: AttrList };
 
     assertOk(input || input === '', 'Input must be a stream, string, or buffer');
 
     const ReportError = (err: Error) => {
 
-        if (deferred.promise) {
+        if (deferred) {
             return deferred.reject(err);
         }
 
@@ -293,10 +295,11 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
 
         const result = m3u8.master ? new MasterPlaylist(m3u8 as any) : new MediaPlaylist(m3u8 as any);
 
-        return deferred.promise ? deferred.resolve(result) : result;
+        return deferred ? deferred.resolve(result) : result;
     };
 
     if (input instanceof Stream) {
+        deferred = {} as any;
         deferred.promise = new Promise<M3U8Playlist>((resolve, reject) => {
 
             deferred.resolve = resolve;
@@ -307,14 +310,18 @@ export default function (input: Stream | string | Buffer, options: ParserOptions
         cr.on('data', ParseLine);
         cr.on('end', Complete);
 
-        input.on('error', deferred.reject as any);
+        input.on('error', deferred.reject);
 
         return deferred.promise.finally(() => {
 
-            input.removeListener('error', deferred.reject as any);
+            input.removeListener('error', deferred.reject);
             cr.removeListener('data', ParseLine);
             cr.removeListener('end', Complete);
         });
+    }
+
+    if (typeof input !== 'string') {
+        throw Error('Must be a string');
     }
 
     const lines = (Buffer.isBuffer(input) ? input.toString('utf-8') : input).split(/\r?\n/);

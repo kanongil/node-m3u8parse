@@ -133,11 +133,11 @@ export class AttrList extends Map<Token, unknown> {
                 }
             }
             else {
-                super.set(name, BigInt(value).toString(10));
+                super.set(name, BigInt(value!).toString(10));
             }
         }
 
-        const stringValue = super.get(name);
+        const stringValue = super.get(name) as string;
         const intValue = BigInt(stringValue);
 
         if (/^\s*0[^\d]/.test(stringValue as string)) {
@@ -161,12 +161,12 @@ export class AttrList extends Map<Token, unknown> {
                 }
             }
             else {
-                super.set(name, '0x' + BigInt(value).toString(16));
+                super.set(name, '0x' + BigInt(value!).toString(16));
             }
         }
 
-        const stringValue = super.get(name);
-        const intValue = BigInt(stringValue);
+        const stringValue = super.get(name) as string;
+        const intValue = BigInt(stringValue!);
 
         if (!/^\s*0x/.test(stringValue as string)) {
             throw new SyntaxError('Representation is not hexadecimal integer compatible');
