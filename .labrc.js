@@ -3,5 +3,6 @@
 module.exports = {
     transform: require.resolve('lab-transform-typescript'),
     sourcemaps: true,
-    threshold: 90
+    threshold: 90,
+    leaks: false
 };

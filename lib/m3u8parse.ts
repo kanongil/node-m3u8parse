@@ -1,4 +1,4 @@
-import type { Readable } from 'readable-stream';
+import type { Readable } from 'stream';
 
 import { ok as assertOk } from 'assert';
 import { Stream } from 'stream';
