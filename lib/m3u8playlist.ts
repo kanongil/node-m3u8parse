@@ -12,7 +12,7 @@ type Byterange = {
     length: number;
 };
 
-type UriMapFunction = (uri: string | undefined, type: string, data: unknown) => string | undefined | void;
+type UriMapFunction<T extends string = string> = (uri: string | undefined, type: T, data: unknown) => string | undefined | void;
 
 
 const internals = {
@@ -88,7 +88,7 @@ const internals = {
         return dst;
     },
 
-    rewriteAttr(mapFn: UriMapFunction, attrs: AttrList | null | undefined, type: string) {
+    rewriteAttr(mapFn: UriMapFunction<any>, attrs: AttrList | null | undefined, type: string) {
 
         const { isStringish } = internals;
         if (attrs?.has('uri')) {
@@ -99,7 +99,7 @@ const internals = {
         }
     },
 
-    rewriteAttrs(mapFn: UriMapFunction, list: AttrList[] | null | undefined, type: string) {
+    rewriteAttrs(mapFn: UriMapFunction<any>, list: AttrList[] | null | undefined, type: string) {
 
         const { rewriteAttr } = internals;
         for (const item of list || []) {
@@ -107,7 +107,7 @@ const internals = {
         }
     },
 
-    rewriteMappedAttrs(mapFn: UriMapFunction, map: Map<string, AttrList[]>, type: string) {
+    rewriteMappedAttrs(mapFn: UriMapFunction<any>, map: Map<string, AttrList[]>, type: string) {
 
         const { rewriteAttrs } = internals;
         if (map) {
@@ -277,7 +277,7 @@ export class MasterPlaylist extends BasePlaylist {
         this.session_keys = internals.cloneAttrArray(obj.session_keys);
     }
 
-    rewriteUris(mapFn: UriMapFunction): this {
+    rewriteUris(mapFn: UriMapFunction<'variant' | 'iframe' | 'group' | 'data' | 'session-key'>): this {
 
         const { rewriteAttrs, rewriteMappedAttrs } = internals;
 
@@ -293,7 +293,7 @@ export class MasterPlaylist extends BasePlaylist {
         rewriteMappedAttrs(mapFn, this.data, 'data');
         rewriteAttrs(mapFn, this.session_keys, 'session-key');
 
-        return super.rewriteUris(mapFn);
+        return super.rewriteUris(mapFn as UriMapFunction);
     }
 
     toString(): string {
@@ -736,7 +736,7 @@ export class MediaPlaylist extends BasePlaylist {
         return segment;
     }
 
-    rewriteUris(mapFn: UriMapFunction): this {
+    rewriteUris(mapFn: UriMapFunction<'segment' | 'segment-key' | 'segment-map' | 'segment-part' | 'preload-hint' | 'rendition-report'>): this {
 
         const { rewriteAttrs } = internals;
 
@@ -749,7 +749,7 @@ export class MediaPlaylist extends BasePlaylist {
             rewriteAttrs(mapFn, this.meta.rendition_reports, 'rendition-report');
         }
 
-        return super.rewriteUris(mapFn);
+        return super.rewriteUris(mapFn as UriMapFunction);
     }
 
     toString(): string {
@@ -885,7 +885,7 @@ export class MediaSegment implements IRewritableUris {
         return !full;
     }
 
-    rewriteUris(mapFn: UriMapFunction): this {
+    rewriteUris(mapFn: UriMapFunction<'segment' | 'segment-key' | 'segment-map' | 'segment-part'>): this {
 
         const { rewriteAttrs, rewriteAttr } = internals;
 
