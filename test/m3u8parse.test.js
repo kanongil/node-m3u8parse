@@ -583,6 +583,7 @@ describe('M3U8Playlist', () => {
                 'segment-key',
                 'segment-map',
                 'segment-part',
+                'segment',
                 'preload-hint',
                 'rendition-report'
             ]);

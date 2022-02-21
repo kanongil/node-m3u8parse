@@ -283,8 +283,8 @@ export class MasterPlaylist extends BasePlaylist {
 
         for (const variant of this.variants) {
             const newUri = mapFn(variant.uri, 'variant', variant);
-            if (newUri !== undefined && internals.isStringish(newUri)) {
-                variant.uri = newUri;
+            if (internals.isStringish(newUri)) {
+                variant.uri = newUri!;
             }
         }
 
@@ -893,11 +893,9 @@ export class MediaSegment implements IRewritableUris {
         rewriteAttr(mapFn, this.map, 'segment-map');
         rewriteAttrs(mapFn, this.parts, 'segment-part');
 
-        if (internals.isStringish(this.uri)) {
-            const newUri = mapFn(this.uri, 'segment', this);
-            if (newUri !== undefined && internals.isStringish(newUri)) {
-                this.uri = newUri;
-            }
+        const newUri = mapFn(this.uri, 'segment', this);
+        if (internals.isStringish(newUri)) {
+            this.uri = newUri!;
         }
 
         return this;
