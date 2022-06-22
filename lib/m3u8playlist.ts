@@ -429,11 +429,11 @@ export class MediaPlaylist extends BasePlaylist {
         }
     }
 
-    private _lastSegmentProperty<P extends keyof MediaSegment>(key: P, msn: Msn | bigint, incrFn: (segment: MediaSegment) => boolean): MediaSegment[P] | undefined {
+    private _lastSegmentProperty<P extends keyof MediaSegment>(key: P, msn: Msn | bigint, incrFn?: (segment: MediaSegment) => boolean): MediaSegment[P] | undefined {
 
         let segment;
         while ((segment = this.getSegment(msn--)) !== null) {
-            if (incrFn(segment)) {
+            if (incrFn && incrFn(segment)) {
                 return undefined;
             }
 
@@ -679,7 +679,7 @@ export class MediaPlaylist extends BasePlaylist {
 
     mapForMsn(msn: Msn | bigint): AttrList | undefined {
 
-        return this._lastSegmentProperty('map', msn, ({ discontinuity }: MediaSegment) => !!discontinuity); // abort on discontinuity
+        return this._lastSegmentProperty('map', msn);
     }
 
     getSegment(msn: Msn | bigint, independent?: false): MediaSegment | null;
