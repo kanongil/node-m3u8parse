@@ -4,6 +4,7 @@ import Clone = require('clone');
 
 import { AttrList } from './attrlist';
 
+const BigInt = global.BigInt || Number;     // Fallback to Number when no BigInt
 
 type Msn = number;
 
@@ -824,7 +825,7 @@ export class MediaSegment implements IRewritableUris {
 
     constructor(uri?: string | typeof URL, meta?: MediaSegment, version?: number) {
 
-        if (uri instanceof URL) {
+        if (URL && uri instanceof URL) {
             uri = uri.href;
         }
 
