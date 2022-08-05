@@ -80,7 +80,7 @@ export class AttrList extends Map<Token, unknown> {
     }
 
     get(attr: string): string | undefined;
-    get(attr: string, type?: AttrType.BigInt | AttrType.HexInt): BigInt;
+    get(attr: string, type?: AttrType.BigInt | AttrType.HexInt): bigint;
     get(attr: string, type?: AttrType.Int | AttrType.HexNo | AttrType.Float | AttrType.SignedFloat): number;
     // eslint-disable-next-line @typescript-eslint/unified-signatures
     get(attr: string, type?: AttrType.Enum | AttrType.String): string | undefined;
@@ -93,7 +93,7 @@ export class AttrList extends Map<Token, unknown> {
     }
 
     set(attr: string, value: undefined | null): this;
-    set(attr: string, value: BigInt | number, type?: AttrType.BigInt | AttrType.HexInt): this;
+    set(attr: string, value: bigint | number, type?: AttrType.BigInt | AttrType.HexInt): this;
     set(attr: string, value: number, type?: AttrType.Int | AttrType.HexNo | AttrType.Float | AttrType.SignedFloat): this;
     set(attr: string, value: Resolution, type?: AttrType.Resolution): this;
     set(attr: string, value: Byterange, type?: AttrType.Byterange): this;

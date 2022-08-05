@@ -9,11 +9,11 @@ try {
 }
 catch (err) {}
 
-import Clone = require('clone');
-import Split = require('split');
+import Clone from 'clone';
+import Split from 'split';
 
-import { AttrList } from './attrlist';
-import { MediaPlaylist, MasterPlaylist, MediaSegment } from './m3u8playlist';
+import { AttrList } from './attrlist.js';
+import { MediaPlaylist, MasterPlaylist, MediaSegment } from './m3u8playlist.js';
 
 
 const internals = {
@@ -23,12 +23,17 @@ const internals = {
 
 
 interface ParserOptions {
+    type?: 'main' | 'media';
     extensions?: { [K: string]: boolean };
 }
 
 export type M3U8Playlist = MediaPlaylist | MasterPlaylist;
 
+export default function (input: string | Buffer, options?: ParserOptions & { type: 'main' }): MasterPlaylist;
+export default function (input: string | Buffer, options?: ParserOptions & { type: 'media' }): MediaPlaylist;
 export default function (input: string | Buffer, options?: ParserOptions): M3U8Playlist;
+export default function (input: Stream | Readable, options?: ParserOptions & { type: 'main' }): Promise<MasterPlaylist>;
+export default function (input: Stream | Readable, options?: ParserOptions & { type: 'media' }): Promise<MediaPlaylist>;
 export default function (input: Stream | Readable, options?: ParserOptions): Promise<M3U8Playlist>;
 
 export default function (input: Stream | Readable | string | Buffer, options: ParserOptions = {}): Promise<M3U8Playlist> | M3U8Playlist {
@@ -39,6 +44,7 @@ export default function (input: Stream | Readable | string | Buffer, options: Pa
     let meta = {} as MediaSegment & { info?: AttrList };
 
     assertOk(input instanceof Stream || typeof input === 'string' || Buffer.isBuffer(input), 'Input must be a stream, string, or buffer');
+    assertOk(!options.type || options.type === 'main' || options.type === 'media', 'Type must be "main" or "media"');
 
     const ReportError = (err: Error) => {
 
@@ -291,6 +297,10 @@ export default function (input: Stream | Readable | string | Buffer, options: Pa
 
         if (Object.keys(meta).length) {
             (m3u8.segments ??= []).push(new MediaSegment(undefined, meta, m3u8.version));    // Append a partial segment
+        }
+
+        if (options.type) {
+            assertOk(!!m3u8.master === (options.type === 'main'), 'Invalid playlist type');
         }
 
         const result = m3u8.master ? new MasterPlaylist(m3u8 as any) : new MediaPlaylist(m3u8 as any);

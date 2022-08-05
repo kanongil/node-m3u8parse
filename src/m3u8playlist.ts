@@ -1,10 +1,9 @@
-import { URL } from 'url';
+import Clone from 'clone';
 
-import Clone = require('clone');
-
-import { AttrList } from './attrlist';
+import { AttrList } from './attrlist.js';
 
 const BigInt = global.BigInt || Number;     // Fallback to Number when no BigInt
+const URL = global.URL;
 
 type Msn = number;
 
@@ -60,7 +59,7 @@ const internals = {
 
     cloneAttrArray(src?: AttrList[]) {
 
-        const dst = [];
+        const dst: AttrList[] = [];
         for (const entry of src || []) {
             dst.push(new AttrList(entry));
         }

@@ -1,16 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ES2019",
+    "composite": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2020",
     "lib": [ "ES2020" ],
-    "module": "commonjs",
+    "module": "ES2020",
+    "moduleResolution": "node",
     "isolatedModules": true,
     "declaration": true,
     "strict": true,
     "strictNullChecks": true,
     "esModuleInterop": false,
-    "types": ["node"]
-  },
-  "exclude": [
-    "node_modules"
-  ]
+    "outDir": "../lib"
+  }
 }

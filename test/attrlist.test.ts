@@ -1,15 +1,13 @@
-'use strict';
+import { expect } from '@hapi/code';
+import Lab from '@hapi/lab';
 
-const Code = require('@hapi/code');
-const Lab = require('@hapi/lab');
-
-const { AttrList } = require('..');
+import { AttrList } from '../lib/index.js';
 
 
 // Test shortcuts
 
-const { before, describe, it } = exports.lab = Lab.script();
-const { expect } = Code;
+export const lab = Lab.script();
+const { before, describe, it } = lab;
 
 
 describe('AttrList', () => {
@@ -34,7 +32,7 @@ describe('AttrList', () => {
 
         it('supports mappable array argument', () => {
 
-            const list = new AttrList([['value', '42'], ['null', null], ['UNDEFINED'], ['EMPTY', '']]);
+            const list = new AttrList([['value', '42'], ['null', null], ['UNDEFINED'], ['EMPTY', '']] as any);
             expect(list.decimalIntegerAsNumber('VALUE')).to.equal(42);
             expect(list.enumeratedString('empty')).to.equal('');
             expect(list.size).to.equal(2);
@@ -43,7 +41,7 @@ describe('AttrList', () => {
         it('supports object argument', () => {
 
             const obj = { value: '42', null: null, UNDEFINED: undefined, EMPTY: '' };
-            const list = new AttrList(obj);
+            const list = new AttrList(obj as any);
             expect(list.decimalIntegerAsNumber('VALUE')).to.equal(42);
             expect(list.enumeratedString('empty')).to.equal('');
             expect(list.size).to.equal(2);
@@ -67,13 +65,13 @@ describe('AttrList', () => {
         expect(list.toString()).to.equal('INT=42,HEX=0x42,FLOAT=0.42,STRING="hi",ENUM=OK,RES=4x2');
         list.decimalIntegerAsNumber('extra', 123);
         expect(list.toString()).to.equal('INT=42,HEX=0x42,FLOAT=0.42,STRING="hi",ENUM=OK,RES=4x2,EXTRA=123');
-        list.set('extra', null);
+        list!.set('extra', null);
         expect(list.toString()).to.equal('INT=42,HEX=0x42,FLOAT=0.42,STRING="hi",ENUM=OK,RES=4x2');
     });
 
     describe('method', () => {
 
-        const types = [
+        const types: [any, any][] = [
             ['bigint', BigInt(42)],
             ['hexint', BigInt(66)],
             ['int', 42],
@@ -86,48 +84,51 @@ describe('AttrList', () => {
             ['byterange', { offset: 10, length: 20 }]
         ];
 
-        before(({ context }) => {
+        type Context = { list?: AttrList };
+        type TestArg = Lab.script.Flags & { context: Context };
+
+        before(({ context }: TestArg) => {
 
             context.list = new AttrList('BIGINT=42,HEXINT=0x42,INT=42,HEXNO=0x42,FLOAT=0.42,SIGNED-FLOAT=-0.42,STRING="hi",ENUM=OK,RESOLUTION=4x2,BYTERANGE="20@10"');
         });
 
         describe('#get()', () => {
 
-            it('handles all known types', ({ context: { list } }) => {
+            it('handles all known types', ({ context: { list } }: TestArg) => {
 
                 for (const [type, value] of types) {
-                    expect(list.get(type, type)).to.equal(value);
+                    expect(list!.get(type, type)).to.equal(value);
                 }
             });
 
-            it('fails on unknown types', ({ context: { list } }) => {
+            it('fails on unknown types', ({ context: { list } }: TestArg) => {
 
-                expect(() => list.get('int', 'b')).to.throw('Invalid type: b');
+                expect(() => list!.get('int', 'b' as any)).to.throw('Invalid type: b');
             });
 
-            it('fails on non-string attributes', ({ context: { list } }) => {
+            it('fails on non-string attributes', ({ context: { list } }: TestArg) => {
 
-                expect(() => list.get(undefined)).to.throw('Attributes must be a "string"');
-                expect(() => list.get({})).to.throw('Attributes must be a "string"');
-                expect(() => list.get(Symbol())).to.throw('Attributes must be a "string"');
+                expect(() => list!.get(undefined as any)).to.throw('Attributes must be a "string"');
+                expect(() => list!.get({} as any)).to.throw('Attributes must be a "string"');
+                expect(() => list!.get(Symbol() as any)).to.throw('Attributes must be a "string"');
             });
         });
 
         describe('#set()', () => {
 
-            it('handles all known types', ({ context: { list } }) => {
+            it('handles all known types', ({ context: { list } }: TestArg) => {
 
                 const attrs = new AttrList();
                 for (const [type, value] of types) {
                     attrs.set(type, value, type);
                 }
 
-                expect(attrs).to.equal(list);
+                expect(attrs).to.equal(list!);
             });
 
-            it('fails on unknown types', ({ context: { list } }) => {
+            it('fails on unknown types', ({ context: { list } }: TestArg) => {
 
-                expect(() => list.set('int', 42, 'b')).to.throw('Invalid type: b');
+                expect(() => list!.set('int', 42, 'b' as any)).to.throw('Invalid type: b');
             });
 
             it('handles falsy types', () => {
@@ -153,22 +154,22 @@ describe('AttrList', () => {
                 expect(attrs.get('a')).to.equal('NaN');
             });
 
-            it('deletes attr when null or undefined', ({ context: { list } }) => {
+            it('deletes attr when null or undefined', ({ context: { list } }: TestArg) => {
 
-                expect(list.has('string')).to.be.true();
-                list.set('string', null);
-                expect(list.has('string')).to.be.false();
+                expect(list!.has('string')).to.be.true();
+                list!.set('string', null);
+                expect(list!.has('string')).to.be.false();
 
-                expect(list.has('enum')).to.be.true();
-                list.set('enum', undefined);
-                expect(list.has('enum')).to.be.false();
+                expect(list!.has('enum')).to.be.true();
+                list!.set('enum', undefined);
+                expect(list!.has('enum')).to.be.false();
             });
 
             it('fails on non-string attributes', () => {
 
-                expect(() => new AttrList().set(undefined, 'a')).to.throw('Attributes must be a "string"');
-                expect(() => new AttrList().set({}, 'a')).to.throw('Attributes must be a "string"');
-                expect(() => new AttrList().set(Symbol(), 'a')).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList().set(undefined as any, 'a')).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList().set({} as any, 'a')).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList().set(Symbol() as any, 'a')).to.throw('Attributes must be a "string"');
             });
         });
 
@@ -185,9 +186,9 @@ describe('AttrList', () => {
 
             it('fails on non-string attributes', () => {
 
-                expect(() => new AttrList('A=B').has(undefined)).to.throw('Attributes must be a "string"');
-                expect(() => new AttrList('A=B').has({})).to.throw('Attributes must be a "string"');
-                expect(() => new AttrList('A=B').has(Symbol())).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList('A=B').has(undefined as any)).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList('A=B').has({} as any)).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList('A=B').has(Symbol() as any)).to.throw('Attributes must be a "string"');
             });
         });
 
@@ -210,9 +211,9 @@ describe('AttrList', () => {
 
             it('fails on non-string attributes', () => {
 
-                expect(() => new AttrList('A=B').delete(undefined)).to.throw('Attributes must be a "string"');
-                expect(() => new AttrList('A=B').delete({})).to.throw('Attributes must be a "string"');
-                expect(() => new AttrList('A=B').delete(Symbol())).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList('A=B').delete(undefined as any)).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList('A=B').delete({} as any)).to.throw('Attributes must be a "string"');
+                expect(() => new AttrList('A=B').delete(Symbol() as any)).to.throw('Attributes must be a "string"');
             });
         });
     });
@@ -388,14 +389,10 @@ describe('AttrList', () => {
 
     describe('encoding', () => {
 
-        /**
-         * @param {keyof AttrList} method
-         * @param {*} value
-         */
-        const encode = function (method, value) {
+        const encode = function (method: keyof AttrList, value: any) {
 
             const list = new AttrList();
-            list[method]('VALUE', value);
+            (list as any)[method]('VALUE', value);
             return list.get('value', AttrList.Types.Enum);
         };
 
