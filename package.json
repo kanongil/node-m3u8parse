@@ -23,7 +23,6 @@
     "node": ">=14.17.0"
   },
   "dependencies": {
-    "clone": "^2.1.2",
     "split": "^1.0.0"
   },
   "devDependencies": {

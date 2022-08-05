@@ -9,7 +9,6 @@ try {
 }
 catch (err) {}
 
-import Clone from 'clone';
 import Split from 'split';
 
 import { AttrList } from './attrlist.js';
@@ -55,7 +54,7 @@ export default function (input: Stream | Readable | string | Buffer, options: Pa
         throw err;
     };
 
-    const extensions = Clone(options.extensions || {});
+    const extensions = Object.assign({}, options.extensions);
 
     const ParseExt = function (cmd: string, arg: string | null = null) {
 

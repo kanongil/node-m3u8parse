@@ -1,5 +1,3 @@
-import Clone from 'clone';
-
 import { AttrList } from './attrlist.js';
 
 const BigInt = global.BigInt || Number;     // Fallback to Number when no BigInt
@@ -180,7 +178,10 @@ class BasePlaylist implements IRewritableUris {
                 this.vendor = Object.entries(obj.vendor as unknown as { [entry: string]: string });
             }
             else {
-                this.vendor = Clone(obj.vendor);
+                const set = this.vendor = [] as [string, string | null][];
+                for (const [ext, value] of obj.vendor) {
+                    set.push([ext, value]);
+                }
             }
         }
     }
@@ -264,13 +265,7 @@ export class MasterPlaylist extends BasePlaylist {
             throw new Error('Cannot create from media playlist');
         }
 
-        this.variants = Clone(obj.variants) || [];
-        for (const variant of this.variants) {
-            if (variant.info) {
-                variant.info = new AttrList(variant.info);
-            }
-        }
-
+        this.variants = obj.variants?.map((variant) => ({ uri: variant.uri, info: new AttrList(variant.info) })) ?? [];
         this.groups = internals.cloneAttrMap(obj.groups);
         this.iframes = internals.cloneAttrArray(obj.iframes);
         this.data = internals.cloneAttrMap(obj.data);
@@ -851,7 +846,7 @@ export class MediaSegment implements IRewritableUris {
         }
 
         if (version! >= 4 && meta.byterange) {
-            this.byterange = Clone(meta.byterange);
+            this.byterange = { ...meta.byterange };
         }
 
         if (version! >= 5 && meta.map) {
@@ -874,7 +869,10 @@ export class MediaSegment implements IRewritableUris {
                 this.vendor = Object.entries(meta.vendor as unknown as { [entry: string]: string });
             }
             else {
-                this.vendor = Clone(meta.vendor);
+                const set = this.vendor = [] as [string, string | null][];
+                for (const [ext, value] of meta.vendor) {
+                    set.push([ext, value]);
+                }
             }
         }
     }
