@@ -1026,3 +1026,5 @@ class PlaylistWriter {
         return this._list.join('\n');
     }
 }
+
+export type M3U8Playlist = MediaPlaylist | MasterPlaylist;
