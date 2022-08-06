@@ -27,25 +27,21 @@ const tsifyRules = function (from) {
 module.exports = {
     root: true,
     extends: [
-        'plugin:@hapi/recommended',
-        'plugin:@typescript-eslint/eslint-recommended'
+        'plugin:@hapi/recommended'
     ],
-    plugins: [
-        '@typescript-eslint'
-    ],
+    parser: '@typescript-eslint/parser',
     parserOptions: {
-        ecmaVersion: 2019
+        ecmaVersion: 2020
     },
-    ignorePatterns: ['/lib/**/*.js', '/lib/**/*.d.ts'],
+    ignorePatterns: ['lib/**', 'test/*.js'],
     overrides: [{
-        files: ['lib/**/*.ts'],
+        files: ['**/*.ts'],
         extends: [
             'plugin:@typescript-eslint/recommended'
         ],
-        parser: '@typescript-eslint/parser',
         parserOptions: {
             sourceType: 'module',
-            project: './tsconfig.json',
+            project: './**/tsconfig.json',
             tsconfigRootDir: __dirname
         },
         rules: {
