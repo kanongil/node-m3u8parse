@@ -6,10 +6,11 @@
   "types": "lib/index.d.ts",
   "type": "module",
   "scripts": {
-    "clean": "tsc -b src test --clean",
+    "clean": "tsc -b src test --clean; rm -R ./coverage",
     "postpack": "npm run clean",
     "prepack": "npm run clean && tsc -b src --force",
-    "test": "tsc -b test && c8 --check-coverage lab"
+    "test": "tsc -b test && c8 --check-coverage lab",
+    "test-cov-html": "tsc -b test && c8 -r html lab"
   },
   "keywords": [
     "hls",
