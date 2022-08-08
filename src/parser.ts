@@ -63,11 +63,11 @@ export class M3U8Parser {
 
         if (type) {
             if (type !== PlaylistType.Main && type !== PlaylistType.Media) {
-                throw new TypeError('Passed type must be "main" or "media"');
+                throw new TypeError(`Passed type must be "${PlaylistType.Main}" or "${PlaylistType.Media}"`);
             }
 
             if (!!m3u8.master !== (type === PlaylistType.Main)) {
-                throw new ParserError('Invalid playlist type');
+                throw new ParserError('Incorrect playlist type');
             }
         }
 

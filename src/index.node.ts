@@ -48,7 +48,7 @@ export default function (input: Stream | Readable | string | Buffer, options: Pa
     }
 
     if (options.type && (options.type !== PlaylistType.Main && options.type !== PlaylistType.Media)) {
-        throw new TypeError('Passed type must be "main" or "media"');
+        throw new TypeError(`Passed type must be "${PlaylistType.Main}" or "${PlaylistType.Media}"`);
     }
 
     if (input instanceof Stream) {

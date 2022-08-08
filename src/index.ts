@@ -27,7 +27,7 @@ export default function (input: string, options: ParseOptions = {}): M3U8Playlis
     }
 
     if (options.type && (options.type !== PlaylistType.Main && options.type !== PlaylistType.Media)) {
-        throw new TypeError('Passed type must be "main" or "media"');
+        throw new TypeError(`Passed type must be "${PlaylistType.Main}" or "${PlaylistType.Media}"`);
     }
 
     const parser = new M3U8Parser(options);
