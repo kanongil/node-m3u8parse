@@ -6,7 +6,7 @@
   "types": "lib/index.d.ts",
   "type": "module",
   "scripts": {
-    "clean": "tsc -b src test --clean; rm -R ./coverage",
+    "clean": "tsc -b src test --clean; rm -Rf ./coverage",
     "postpack": "npm run clean",
     "prepack": "npm run clean && tsc -b src --force",
     "test": "tsc -b test && c8 --check-coverage lab",
