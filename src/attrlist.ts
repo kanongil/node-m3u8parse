@@ -1,3 +1,5 @@
+type Enum<T extends string> = T | `${T}`;
+
 interface Token {
     toUpperCase(): string;
 }
@@ -80,33 +82,33 @@ export class AttrList extends Map<Token, unknown> {
     }
 
     get(attr: string): string | undefined;
-    get(attr: string, type?: AttrType.BigInt | AttrType.HexInt): bigint;
-    get(attr: string, type?: AttrType.Int | AttrType.HexNo | AttrType.Float | AttrType.SignedFloat): number;
+    get(attr: string, type?: Enum<AttrType.BigInt | AttrType.HexInt>): bigint;
+    get(attr: string, type?: Enum<AttrType.Int | AttrType.HexNo | AttrType.Float | AttrType.SignedFloat>): number;
     // eslint-disable-next-line @typescript-eslint/unified-signatures
-    get(attr: string, type?: AttrType.Enum | AttrType.String): string | undefined;
-    get(attr: string, type?: AttrType.Resolution): Resolution | undefined;
-    get(attr: string, type?: AttrType.Byterange): Byterange | undefined;
+    get(attr: string, type?: Enum<AttrType.Enum | AttrType.String>): string | undefined;
+    get(attr: string, type?: Enum<AttrType.Resolution>): Resolution | undefined;
+    get(attr: string, type?: Enum<AttrType.Byterange>): Byterange | undefined;
 
-    get(attr: string, type: AttrType = AttrType.Enum): unknown {
+    get(attr: string, type: Enum<AttrType> = AttrType.Enum): unknown {
 
-        return this._applyType(type, attr) as any;
+        return this._applyType(type as AttrType, attr) as any;
     }
 
     set(attr: string, value: undefined | null): this;
-    set(attr: string, value: bigint | number, type?: AttrType.BigInt | AttrType.HexInt): this;
-    set(attr: string, value: number, type?: AttrType.Int | AttrType.HexNo | AttrType.Float | AttrType.SignedFloat): this;
-    set(attr: string, value: Resolution, type?: AttrType.Resolution): this;
-    set(attr: string, value: Byterange, type?: AttrType.Byterange): this;
-    set(attr: string, value: string | unknown, type?: AttrType.Enum | AttrType.String): this;
+    set(attr: string, value: bigint | number, type?: Enum<AttrType.BigInt | AttrType.HexInt>): this;
+    set(attr: string, value: number, type?: Enum<AttrType.Int | AttrType.HexNo | AttrType.Float | AttrType.SignedFloat>): this;
+    set(attr: string, value: Resolution, type?: Enum<AttrType.Resolution>): this;
+    set(attr: string, value: Byterange, type?: Enum<AttrType.Byterange>): this;
+    set(attr: string, value: string | unknown, type?: Enum<AttrType.Enum | AttrType.String>): this;
 
-    set(attr: string, value: unknown, type: AttrType = AttrType.Enum): this {
+    set(attr: string, value: unknown, type: Enum<AttrType> = AttrType.Enum): this {
 
         if (value === undefined || value === null) {
             this.delete(attr);
             return this;
         }
 
-        this._applyType(type, attr, value);
+        this._applyType(type as AttrType, attr, value);
         return this;
     }
 
