@@ -91,10 +91,6 @@ export class M3U8Parser {
 
                 m3u8.target_duration = parseInt(arg, 10);
             },
-            '#EXT-X-ALLOW-CACHE': (arg) => {
-
-                m3u8.allow_cache = (arg !== 'NO');
-            },
             '#EXT-X-MEDIA-SEQUENCE': (arg) => {
 
                 m3u8.media_sequence = parseInt(arg, 10);

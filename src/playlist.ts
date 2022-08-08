@@ -340,6 +340,17 @@ export class MainPlaylist extends BasePlaylist {
     }
 }
 
+/**
+ * Legacy properties, that could be used when restoring.
+ */
+interface Legacy {
+    /** @deprecated Use {@link MediaPlaylist.media_sequence} */
+    readonly first_seq_no: number;
+
+    /** @deprecated Completely removed */
+    readonly allow_cache?: boolean;
+}
+
 
 export class MediaPlaylist extends BasePlaylist {
 
@@ -364,8 +375,6 @@ export class MediaPlaylist extends BasePlaylist {
 
     i_frames_only: boolean;
     ended: boolean;
-    /** @deprecated */
-    allow_cache?: boolean;
 
     segments: MediaSegment[];
 
@@ -374,7 +383,8 @@ export class MediaPlaylist extends BasePlaylist {
     server_control?: AttrList;
     part_info?: AttrList;
 
-    constructor(obj?: Readonly<MediaPlaylist>) {
+    constructor(obj?: Readonly<MediaPlaylist>);
+    constructor(obj?: Readonly<MediaPlaylist> & Legacy) {
 
         super(obj);
 
@@ -385,15 +395,12 @@ export class MediaPlaylist extends BasePlaylist {
         }
 
         this.target_duration = +obj.target_duration || Number.NaN;
-        this.media_sequence =  (internals.formatMsn(obj.media_sequence) ?? internals.formatMsn((obj as any).first_seq_no)) || 0;
+        this.media_sequence = internals.formatMsn(obj.media_sequence) ?? internals.formatMsn(obj.first_seq_no) ?? 0;
         this.discontinuity_sequence = internals.formatMsn(obj.discontinuity_sequence);
         this.type = obj.type !== undefined ? `${obj.type}` : undefined;
 
         this.i_frames_only = !!obj.i_frames_only;
         this.ended = !!obj.ended;
-        if (obj.allow_cache !== undefined) {
-            this.allow_cache = !!obj.allow_cache;
-        }
 
         this.segments = [];
         if (obj.segments) {
@@ -754,10 +761,6 @@ export class MediaPlaylist extends BasePlaylist {
         m3u8.ext('TARGETDURATION', this.target_duration);
 
         m3u8.ext('PLAYLIST-TYPE', this.type);
-
-        if (this.version < 7 && this.allow_cache === false) {
-            m3u8.ext('ALLOW-CACHE', 'NO');
-        }
 
         m3u8.ext('SERVER-CONTROL', stringifyAttrs(this.server_control));
         m3u8.ext('PART-INF', stringifyAttrs(this.part_info));
