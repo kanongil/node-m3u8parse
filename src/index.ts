@@ -4,7 +4,7 @@ import type { ParserOptions } from './parser.js';
 import type { M3U8Playlist, MasterPlaylist, MediaPlaylist } from './playlist.js';
 
 export { AttrList } from './attrlist.js';
-export { M3U8Parser, ParserError, PlaylistType } from './parser.js';
+export { ParserError, PlaylistType } from './parser.js';
 export { MasterPlaylist, MediaPlaylist, MediaSegment } from './playlist.js';
 
 export type { ParserOptions } from './parser.js';
@@ -16,8 +16,8 @@ export interface ParseOptions extends ParserOptions {
 }
 
 
-export default function (input: string, options?: ParseOptions & { type: 'main' }): MasterPlaylist;
-export default function (input: string, options?: ParseOptions & { type: 'media' }): MediaPlaylist;
+export default function (input: string, options?: ParseOptions & { type: PlaylistType.Main | 'main' }): MasterPlaylist;
+export default function (input: string, options?: ParseOptions & { type: PlaylistType.Media | 'media' }): MediaPlaylist;
 export default function (input: string, options?: ParseOptions): M3U8Playlist;
 
 export default function (input: string, options: ParseOptions = {}): M3U8Playlist {

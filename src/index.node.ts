@@ -34,11 +34,11 @@ const parseStream = async function (stream: Readable, options: ParseOptions): Pr
 };
 
 
-export default function (input: string | Buffer, options?: ParseOptions & { type: 'main' }): MasterPlaylist;
-export default function (input: string | Buffer, options?: ParseOptions & { type: 'media' }): MediaPlaylist;
+export default function (input: string | Buffer, options?: ParseOptions & { type: PlaylistType.Main | 'main' }): MasterPlaylist;
+export default function (input: string | Buffer, options?: ParseOptions & { type: PlaylistType.Media | 'media' }): MediaPlaylist;
 export default function (input: string | Buffer, options?: ParseOptions): M3U8Playlist;
-export default function (input: Stream | Readable, options?: ParseOptions & { type: 'main' }): Promise<MasterPlaylist>;
-export default function (input: Stream | Readable, options?: ParseOptions & { type: 'media' }): Promise<MediaPlaylist>;
+export default function (input: Stream | Readable, options?: ParseOptions & { type: PlaylistType.Main | 'main' }): Promise<MasterPlaylist>;
+export default function (input: Stream | Readable, options?: ParseOptions & { type: PlaylistType.Media | 'media' }): Promise<MediaPlaylist>;
 export default function (input: Stream | Readable, options?: ParseOptions): Promise<M3U8Playlist>;
 
 export default function (input: Stream | Readable | string | Buffer, options: ParseOptions = {}): Promise<M3U8Playlist> | M3U8Playlist {
