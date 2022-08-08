@@ -153,7 +153,7 @@ export class M3U8Parser {
             '#EXT-X-MEDIA': (arg) => {
 
                 const attrs: AttrList = new AttrList(arg);
-                const id = attrs.get('group-id', AttrList.Types.String) || '#';
+                const id = attrs.get('group-id', AttrList.Types.String) ?? '#';
 
                 let list: AttrList[] & { type?: string } | undefined = (m3u8.groups ??= new Map()).get(id);
                 if (!list) {

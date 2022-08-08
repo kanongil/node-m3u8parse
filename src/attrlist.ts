@@ -91,7 +91,7 @@ export class AttrList extends Map<Token, unknown> {
 
     get(attr: string, type: Enum<AttrType> = AttrType.Enum): unknown {
 
-        return this._applyType(type as AttrType, attr) as any;
+        return this._applyType(type as AttrType, attr);
     }
 
     set(attr: string, value: undefined | null): this;
@@ -231,8 +231,8 @@ export class AttrList extends Map<Token, unknown> {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
-            value = value! || {} as any;
-            super.set(name, '' + Math.floor(value.width) + 'x' + Math.floor(value.height));
+            // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+            super.set(name, '' + Math.floor(value?.width!) + 'x' + Math.floor(value?.height!));
         }
 
         const res = /^(\d+)x(\d+)$/.exec(super.get(name) as string);
@@ -248,9 +248,8 @@ export class AttrList extends Map<Token, unknown> {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
-            value = value! || {} as unknown;
-            const base = `"${Math.floor(value.length || 0)}`;
-            super.set(name, base + (value.offset === undefined ? '"' : `@${Math.floor(value.offset)}"`));
+            const base = `"${Math.floor(value?.length ?? 0)}`;
+            super.set(name, base + (value?.offset === undefined ? '"' : `@${Math.floor(value.offset)}"`));
         }
 
         const res = /^"?(\d+)(?:@(\d+))?"?$/.exec(super.get(name) as string);

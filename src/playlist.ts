@@ -28,7 +28,7 @@ const internals = {
         }
     },
 
-    formatMsn(obj?: Msn) {
+    formatMsn(obj?: Msn): Msn | undefined {
 
         const type = typeof obj;
         return (obj === undefined || type === 'number' || type === 'bigint') ? obj : +obj;
@@ -158,11 +158,9 @@ class BasePlaylist implements IRewritableUris {
 
     vendor?: Iterable<[string, string | null]>;
 
-    constructor(obj?: Readonly<BasePlaylist>) {
+    constructor(obj: Readonly<Partial<BasePlaylist>>) {
 
-        obj = obj! || {};
-
-        this.master = obj.master || false;
+        this.master = !!obj.master;
 
         this.version = obj.version || 1;
         this.start = obj.start ? new AttrList(obj.start) : undefined;
@@ -254,11 +252,12 @@ export class MainPlaylist extends BasePlaylist {
     data: Map<string, AttrList[]>;
     session_keys: AttrList[];
 
-    constructor(obj?: Readonly<MainPlaylist>) {
+    constructor(obj?: Readonly<MainPlaylist>);
+    constructor(obj?: Readonly<Partial<MainPlaylist>>) {
+
+        obj ??= {};
 
         super(obj);
-
-        obj = obj! || {};
 
         if (obj.master !== undefined && !!obj.master !== this.master) {
             throw new Error('Cannot create from media playlist');
@@ -345,7 +344,7 @@ export class MainPlaylist extends BasePlaylist {
  */
 interface Legacy {
     /** @deprecated Use {@link MediaPlaylist.media_sequence} */
-    readonly first_seq_no: number;
+    readonly first_seq_no?: number;
 
     /** @deprecated Completely removed */
     readonly allow_cache?: boolean;
@@ -384,17 +383,17 @@ export class MediaPlaylist extends BasePlaylist {
     part_info?: AttrList;
 
     constructor(obj?: Readonly<MediaPlaylist>);
-    constructor(obj?: Readonly<MediaPlaylist> & Legacy) {
+    constructor(obj?: Readonly<Partial<MediaPlaylist>> & Legacy) {
+
+        obj ??= {};
 
         super(obj);
-
-        obj = obj! || {};
 
         if (obj.master !== undefined && !!obj.master !== this.master) {
             throw new Error('Cannot create from main playlist');
         }
 
-        this.target_duration = +obj.target_duration || Number.NaN;
+        this.target_duration = +obj.target_duration! || Number.NaN;
         this.media_sequence = internals.formatMsn(obj.media_sequence) ?? internals.formatMsn(obj.first_seq_no) ?? 0;
         this.discontinuity_sequence = internals.formatMsn(obj.discontinuity_sequence);
         this.type = obj.type !== undefined ? `${obj.type}` : undefined;
