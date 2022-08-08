@@ -23,16 +23,23 @@
   "engines": {
     "node": ">=14.17.0"
   },
-  "dependencies": {
-    "split": "^1.0.0"
+  "exports": {
+    ".": {
+      "node": {
+        "types": "./lib/index.node.d.ts",
+        "default": "./lib/index.node.js"
+      },
+      "default": "./lib/index.js"
+    },
+    "./attrlist": "./lib/attrlist.js",
+    "./playlist": "./lib/playlist.js"
   },
+  "dependencies": {},
   "devDependencies": {
     "@hapi/code": "^9.0.1",
     "@hapi/eslint-plugin": "^6.0.0",
     "@hapi/lab": "^25.0.1",
-    "@types/clone": "^2.1.0",
     "@types/node": "^14.14.6",
-    "@types/split": "^1.0.0",
     "@typescript-eslint/eslint-plugin": "^5.29.0",
     "@typescript-eslint/parser": "^5.29.0",
     "c8": "^7.12.0",

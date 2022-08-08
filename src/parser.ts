@@ -1,21 +1,18 @@
-import type { Readable } from 'stream';
-
-import { ok as assertOk } from 'assert';
-import { Stream } from 'stream';
-
-import Split from 'split';
-
 import { AttrList } from './attrlist.js';
-import { M3U8Playlist, MediaPlaylist, MasterPlaylist, MediaSegment } from './m3u8playlist.js';
+import { M3U8Playlist, MediaPlaylist, MasterPlaylist, MediaSegment } from './playlist.js';
 
 
-type PlaylistType = 'main' | 'media';
+export enum PlaylistType {
+    Main = 'main',
+    Media = 'media'
+}
 
-interface ParserOptions {
-    type?: PlaylistType;
+
+export interface ParserOptions {
     extensions?: { [K: string]: boolean };
     debug?: (line: string, ...args: unknown[]) => void;
 }
+
 
 export class M3U8Parser {
 
@@ -31,7 +28,7 @@ export class M3U8Parser {
     meta = {} as MediaSegment & { info?: AttrList };
     lineNo = 0;
 
-    constructor(options: Omit<ParserOptions,'type'> = {}) {
+    constructor(options: ParserOptions = {}) {
 
         this.debug = options.debug ?? M3U8Parser.debug;
 
@@ -41,15 +38,17 @@ export class M3U8Parser {
 
     feed(line?: string): void {
 
-        assertOk(typeof line === 'string', 'Must pass strings');
+        if (typeof line !== 'string') {
+            throw new TypeError('Passed line must be string');
+        }
 
         this._parseLine(line);
     }
 
-    finalize(type: 'main'): MasterPlaylist;
-    finalize(type: 'media'): MediaPlaylist;
-    finalize(type?: PlaylistType): M3U8Playlist;
-    finalize(type?: PlaylistType): M3U8Playlist {
+    finalize(type: PlaylistType.Main | `${PlaylistType.Main}`): MasterPlaylist;
+    finalize(type: PlaylistType.Media | `${PlaylistType.Media}`): MediaPlaylist;
+    finalize(type?: PlaylistType | `${PlaylistType}`): M3U8Playlist;
+    finalize(type?: PlaylistType | `${PlaylistType}`): M3U8Playlist {
 
         const { m3u8 } = this;
 
@@ -63,9 +62,11 @@ export class M3U8Parser {
         }
 
         if (type) {
-            assertOk(type === 'main' || type === 'media', 'Type must be "main" or "media"');
+            if (type !== PlaylistType.Main && type !== PlaylistType.Media) {
+                throw new TypeError('Passed type must be "main" or "media"');
+            }
 
-            if (!!m3u8.master !== (type === 'main')) {
+            if (!!m3u8.master !== (type === PlaylistType.Main)) {
                 throw new ParserError('Invalid playlist type');
             }
         }
@@ -311,70 +312,6 @@ export class M3U8Parser {
 
         return true;
     }
-}
-
-
-const interceptError = function <T>(method: (...args: T[]) => any, onError: (err: Error) => void) {
-
-    return function (...args: T[]) {
-
-        try {
-            method(...args);
-        }
-        catch (err) {
-            onError(err as Error);
-        }
-    };
-};
-
-
-export default function (input: string | Buffer, options?: ParserOptions & { type: 'main' }): MasterPlaylist;
-export default function (input: string | Buffer, options?: ParserOptions & { type: 'media' }): MediaPlaylist;
-export default function (input: string | Buffer, options?: ParserOptions): M3U8Playlist;
-export default function (input: Stream | Readable, options?: ParserOptions & { type: 'main' }): Promise<MasterPlaylist>;
-export default function (input: Stream | Readable, options?: ParserOptions & { type: 'media' }): Promise<MediaPlaylist>;
-export default function (input: Stream | Readable, options?: ParserOptions): Promise<M3U8Playlist>;
-
-export default function (input: Stream | Readable | string | Buffer, options: ParserOptions = {}): Promise<M3U8Playlist> | M3U8Playlist {
-
-    assertOk(input instanceof Stream || typeof input === 'string' || Buffer.isBuffer(input), 'Input must be a stream, string, or buffer');
-    assertOk(!options.type || options.type === 'main' || options.type === 'media', 'Type must be "main" or "media"');
-
-    const parser = new M3U8Parser(options);
-
-    if (input instanceof Stream) {
-        const deferred = {} as { promise: Promise<M3U8Playlist>; resolve: (val: M3U8Playlist) => void; reject: (err: Error) => void };
-        deferred.promise = new Promise<M3U8Playlist>((resolve, reject) => {
-
-            deferred.resolve = resolve;
-            deferred.reject = reject;
-        });
-
-        const feeder = interceptError(parser.feed.bind(parser), deferred.reject);
-        const cr = input.pipe(Split());
-        cr.on('data', feeder);
-        cr.on('end', deferred.resolve);
-
-        input.on('error', deferred.reject);
-
-        return deferred.promise.finally(() => {
-
-            input.removeListener('error', deferred.reject);
-            cr.removeListener('data', feeder);
-            cr.removeListener('end', deferred.resolve);
-        }).then(() => parser.finalize()!);
-    }
-
-    const lines = (Buffer.isBuffer(input) ? input.toString('utf-8') : input).split(/\r?\n/);
-    if (lines[0] === '') {
-        lines.shift();
-    }
-
-    for (const line of lines) {
-        parser.feed(line);
-    }
-
-    return parser.finalize(options.type);
 }
 
 

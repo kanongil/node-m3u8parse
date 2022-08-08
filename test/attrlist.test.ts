@@ -1,7 +1,7 @@
 import { expect } from '@hapi/code';
 import Lab from '@hapi/lab';
 
-import { AttrList } from '../lib/index.js';
+import { AttrList } from '../lib/attrlist.js';
 
 
 // Test shortcuts

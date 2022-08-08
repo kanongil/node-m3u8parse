@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 import Code from '@hapi/code';
 import Lab from '@hapi/lab';
-import { M3U8Parse, MasterPlaylist, MediaPlaylist, MediaSegment, AttrList, ParserError } from '../lib/index.js';
+import M3U8Parse, { MasterPlaylist, MediaPlaylist, MediaSegment, AttrList, ParserError } from '../lib/index.node.js';
 
 const fixtureDir = fileURLToPath(new URL('../test/fixtures', import.meta.url));
 
