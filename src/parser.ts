@@ -1,5 +1,5 @@
 import { AttrList } from './attrlist.js';
-import { M3U8Playlist, MediaPlaylist, MasterPlaylist, MediaSegment } from './playlist.js';
+import { M3U8Playlist, MediaPlaylist, MainPlaylist, MediaSegment } from './playlist.js';
 
 
 export enum PlaylistType {
@@ -19,7 +19,7 @@ export class M3U8Parser {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     static debug(line: string, ...args: unknown[]): void {}
 
-    readonly m3u8: Partial<Omit<MediaPlaylist, 'master'> & Omit<MasterPlaylist, 'master'> & { master: boolean }> = {};
+    readonly m3u8: Partial<Omit<MediaPlaylist, 'master'> & Omit<MainPlaylist, 'master'> & { master: boolean }> = {};
     readonly extensions: NonNullable<ParserOptions['extensions']>;
     extParser: { [ext: string]: (arg: string) => void } = {};
 
@@ -45,7 +45,7 @@ export class M3U8Parser {
         this._parseLine(line);
     }
 
-    finalize(type: PlaylistType.Main | `${PlaylistType.Main}`): MasterPlaylist;
+    finalize(type: PlaylistType.Main | `${PlaylistType.Main}`): MainPlaylist;
     finalize(type: PlaylistType.Media | `${PlaylistType.Media}`): MediaPlaylist;
     finalize(type?: PlaylistType | `${PlaylistType}`): M3U8Playlist;
     finalize(type?: PlaylistType | `${PlaylistType}`): M3U8Playlist {
@@ -71,7 +71,7 @@ export class M3U8Parser {
             }
         }
 
-        return m3u8.master ? new MasterPlaylist(m3u8 as any) : new MediaPlaylist(m3u8 as any);
+        return m3u8.master ? new MainPlaylist(m3u8 as any) : new MediaPlaylist(m3u8 as any);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function

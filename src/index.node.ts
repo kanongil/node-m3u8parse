@@ -2,7 +2,7 @@ import { Stream, Readable } from 'stream';
 
 import { M3U8Parser, PlaylistType } from './parser.js';
 
-import type { M3U8Playlist, MasterPlaylist, MediaPlaylist } from './playlist.js';
+import type { M3U8Playlist, MainPlaylist, MediaPlaylist } from './playlist.js';
 
 import parseString, { ParseOptions } from './index.js';
 
@@ -34,10 +34,10 @@ const parseStream = async function (stream: Readable, options: ParseOptions): Pr
 };
 
 
-export default function (input: string | Buffer, options?: ParseOptions & { type: PlaylistType.Main | 'main' }): MasterPlaylist;
+export default function (input: string | Buffer, options?: ParseOptions & { type: PlaylistType.Main | 'main' }): MainPlaylist;
 export default function (input: string | Buffer, options?: ParseOptions & { type: PlaylistType.Media | 'media' }): MediaPlaylist;
 export default function (input: string | Buffer, options?: ParseOptions): M3U8Playlist;
-export default function (input: Stream | Readable, options?: ParseOptions & { type: PlaylistType.Main | 'main' }): Promise<MasterPlaylist>;
+export default function (input: Stream | Readable, options?: ParseOptions & { type: PlaylistType.Main | 'main' }): Promise<MainPlaylist>;
 export default function (input: Stream | Readable, options?: ParseOptions & { type: PlaylistType.Media | 'media' }): Promise<MediaPlaylist>;
 export default function (input: Stream | Readable, options?: ParseOptions): Promise<M3U8Playlist>;
 

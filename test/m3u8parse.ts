@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 import Code from '@hapi/code';
 import Lab from '@hapi/lab';
-import M3U8Parse, { MasterPlaylist, MediaPlaylist, MediaSegment, AttrList, ParserError } from '../lib/index.node.js';
+import M3U8Parse, { MainPlaylist, MediaPlaylist, MediaSegment, AttrList, ParserError } from '../lib/index.node.js';
 
 const fixtureDir = fileURLToPath(new URL('../test/fixtures', import.meta.url));
 
@@ -116,7 +116,7 @@ describe('M3U8Playlist', () => {
     let testIndexAlt: MediaPlaylist;
     let testIndexSingle: MediaPlaylist;
     let testIndexLl: MediaPlaylist;
-    let masterIndex: MasterPlaylist;
+    let mainIndex: MainPlaylist;
 
     before(async () => {
 
@@ -124,7 +124,7 @@ describe('M3U8Playlist', () => {
         testIndexAlt = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc-discont.m3u8')), { type: 'media' });
         testIndexSingle = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'enc-single.m3u8')), { type: 'media' });
         testIndexLl = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'll.m3u8')), { type: 'media' });
-        masterIndex = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'variant_v4.m3u8')), { type: 'main' });
+        mainIndex = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'variant_v4.m3u8')), { type: 'main' });
     });
 
     describe('constructor', () => {
@@ -134,7 +134,7 @@ describe('M3U8Playlist', () => {
             expect(testIndex).to.equal(new MediaPlaylist(testIndex));
             expect(testIndexAlt).to.equal(new MediaPlaylist(testIndexAlt));
             expect(testIndexSingle).to.equal(new MediaPlaylist(testIndexSingle));
-            expect(masterIndex).to.equal(new MasterPlaylist(masterIndex));
+            expect(mainIndex).to.equal(new MainPlaylist(mainIndex));
             expect(testIndexLl).to.equal(new MediaPlaylist(testIndexLl));
         });
 
@@ -143,7 +143,7 @@ describe('M3U8Playlist', () => {
             expect(testIndex).to.equal(new MediaPlaylist(JSON.parse(JSON.stringify(testIndex))));
             expect(testIndexAlt).to.equal(new MediaPlaylist(JSON.parse(JSON.stringify(testIndexAlt))));
             expect(testIndexSingle).to.equal(new MediaPlaylist(JSON.parse(JSON.stringify(testIndexSingle))));
-            expect(masterIndex).to.equal(new MasterPlaylist(JSON.parse(JSON.stringify(masterIndex))));
+            expect(mainIndex).to.equal(new MainPlaylist(JSON.parse(JSON.stringify(mainIndex))));
         });
 
         it('performs object to Map conversion', async () => {
@@ -168,7 +168,7 @@ describe('M3U8Playlist', () => {
             index.groups = toObject(index.groups);
             index.data = toObject(index.data);
 
-            expect(new MasterPlaylist(index)).to.equal(masterIndex);
+            expect(new MainPlaylist(index)).to.equal(mainIndex);
         });
     });
 
@@ -200,9 +200,9 @@ describe('M3U8Playlist', () => {
             expect(vodPlaylist.isLive()).to.be.false();
         });
 
-        it('should return false for master playlist', () => {
+        it('should return false for main playlist', () => {
 
-            expect(masterIndex.isLive()).to.be.false();
+            expect(mainIndex.isLive()).to.be.false();
         });
     });
 
@@ -486,7 +486,7 @@ describe('M3U8Playlist', () => {
 
     describe('#rewriteUris()', () => {
 
-        type MapType = Parameters<MediaPlaylist['rewriteUris']>[0] & Parameters<MasterPlaylist['rewriteUris']>[0];
+        type MapType = Parameters<MediaPlaylist['rewriteUris']>[0] & Parameters<MainPlaylist['rewriteUris']>[0];
 
         it('should map all variant playlist uris', () => {
 
@@ -508,14 +508,14 @@ describe('M3U8Playlist', () => {
             expect(index2.segments[4].parts![3].quotedString('uri')).to.equal('filePart273.3.mp4?segment-part');
         });
 
-        it('should map all master playlist uris', () => {
+        it('should map all main playlist uris', () => {
 
             const mapFn: MapType = function (uri, type) {
 
                 return uri + '?' + type;
             };
 
-            const index = new MasterPlaylist(masterIndex).rewriteUris(mapFn);
+            const index = new MainPlaylist(mainIndex).rewriteUris(mapFn);
 
             expect(index.variants[0].uri).to.equal('low/video-only.m3u8?variant');
             expect(index.variants[3].uri).to.equal('main/english-audio.m3u8?variant');
@@ -539,7 +539,7 @@ describe('M3U8Playlist', () => {
             expect(index.segments[0].keys![0].quotedString('uri')).to.equal('https://priv.example.com/key.php?r=52');
             expect(index.segments[3].uri).to.equal('http://media.example.com/fileSequence53-A.ts');
 
-            const index2 = new MasterPlaylist(masterIndex).rewriteUris(mapFn);
+            const index2 = new MainPlaylist(mainIndex).rewriteUris(mapFn);
             expect(index2.variants[0].uri).to.equal('low/video-only.m3u8');
             expect(index2.iframes[0].quotedString('uri')).to.equal('lo/iframes.m3u8');
             expect(index2.groups.get('aac')![0].quotedString('uri')).to.equal('main/english-audio.m3u8');
@@ -613,7 +613,7 @@ describe('M3U8Playlist', () => {
             expect(index.segments[0].uri).to.equal('');
             expect(index.segments[2].parts![0].quotedString('uri')).to.equal('');
 
-            const index2 = new MasterPlaylist(masterIndex).rewriteUris(mapFn);
+            const index2 = new MainPlaylist(mainIndex).rewriteUris(mapFn);
             expect(index2.variants[0].uri).to.equal('');
         });
     });
@@ -622,9 +622,9 @@ describe('M3U8Playlist', () => {
 
         it('session-data', () => {
 
-            expect(masterIndex.data.get('com.example.lyrics')![0].quotedString('uri')).to.equal('lyrics.json');
-            expect(masterIndex.data.get('com.example.title')![0].quotedString('value')).to.equal('This is an example');
-            expect(masterIndex.data.get('com.example.title')![1].quotedString('value')).to.equal('Este es un ejemplo');
+            expect(mainIndex.data.get('com.example.lyrics')![0].quotedString('uri')).to.equal('lyrics.json');
+            expect(mainIndex.data.get('com.example.title')![0].quotedString('value')).to.equal('This is an example');
+            expect(mainIndex.data.get('com.example.title')![1].quotedString('value')).to.equal('Este es un ejemplo');
         });
 
         it('segment gap info', () => {
@@ -656,21 +656,21 @@ describe('M3U8Playlist', () => {
             expect(testIndexLl).to.equal(index4);
         });
 
-        it('should output valid master files', async () => {
+        it('should output valid main playlist files', async () => {
 
-            const index = await M3U8Parse(masterIndex.toString());
+            const index = await M3U8Parse(mainIndex.toString());
             expect(index).to.exist();
-            expect(masterIndex).to.equal(index);
+            expect(mainIndex).to.equal(index);
 
-            const masterIndexV6 = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'variant_v6.m3u8')));
-            const index2 = await M3U8Parse(masterIndexV6.toString());
+            const mainIndexV6 = await M3U8Parse(Fs.createReadStream(Path.join(fixtureDir, 'variant_v6.m3u8')));
+            const index2 = await M3U8Parse(mainIndexV6.toString());
             expect(index2).to.exist();
-            expect(masterIndexV6).to.equal(index2);
+            expect(mainIndexV6).to.equal(index2);
         });
 
         it('should handle vendor extensions', () => {
 
-            const index = new MasterPlaylist();
+            const index = new MainPlaylist();
 
             index.vendor = new Map([
                 ['#EXT-MY-TEST', 'yeah!' as any],
@@ -682,7 +682,7 @@ describe('M3U8Playlist', () => {
                 '#EXT-MY-TEST': 'yeah!',
                 '#EXT-MY-SIMPLE': false
             };
-            expect(new MasterPlaylist(index).toString()).to.equal('#EXTM3U\n#EXT-MY-TEST:yeah!\n#EXT-MY-SIMPLE\n');
+            expect(new MainPlaylist(index).toString()).to.equal('#EXTM3U\n#EXT-MY-TEST:yeah!\n#EXT-MY-SIMPLE\n');
         });
 
         it('should handle vendor segment-extensions', () => {

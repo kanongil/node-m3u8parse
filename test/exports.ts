@@ -12,13 +12,13 @@ export const lab = Lab.script();
 const { describe } = lab;
 
 
-describe('has requires exports', () => {
+describe('has required exports', () => {
 
     describe('M3U8Parse', () => {
 
         expect(M3U8Parse).to.contain([
             'AttrList',
-            'MasterPlaylist',
+            'MainPlaylist',
             'MediaPlaylist',
             'MediaSegment',
             'ParserError',
@@ -36,7 +36,7 @@ describe('has requires exports', () => {
     describe('Playlist', () => {
 
         expect(Playlist).to.contain([
-            'MasterPlaylist',
+            'MainPlaylist',
             'MediaPlaylist',
             'MediaSegment'
         ]);

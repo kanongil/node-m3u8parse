@@ -235,15 +235,15 @@ class BasePlaylist implements IRewritableUris {
     }
 }
 
-export class MasterPlaylist extends BasePlaylist {
+export class MainPlaylist extends BasePlaylist {
 
-    static cast(index: MediaPlaylist | MasterPlaylist): MasterPlaylist | never {
+    static cast(index: MediaPlaylist | MainPlaylist): MainPlaylist | never {
 
         if (!index.master) {
             throw new Error('Cannot cast a media playlist');
         }
 
-        return index as MasterPlaylist;
+        return index as MainPlaylist;
     }
 
     readonly master: true = true;
@@ -254,13 +254,12 @@ export class MasterPlaylist extends BasePlaylist {
     data: Map<string, AttrList[]>;
     session_keys: AttrList[];
 
-    constructor(obj?: Readonly<MasterPlaylist>) {
+    constructor(obj?: Readonly<MainPlaylist>) {
 
         super(obj);
 
         obj = obj! || {};
 
-        this.master = true;
         if (obj.master !== undefined && !!obj.master !== this.master) {
             throw new Error('Cannot create from media playlist');
         }
@@ -347,10 +346,10 @@ export class MediaPlaylist extends BasePlaylist {
     public static readonly Type = PlaylistType;
     public static readonly _metas = new Map(Object.entries(ArrayMetas));
 
-    public static cast(index: MediaPlaylist | MasterPlaylist): MediaPlaylist {
+    public static cast(index: MediaPlaylist | MainPlaylist): MediaPlaylist {
 
         if (index.master) {
-            throw new Error('Cannot cast a master playlist');
+            throw new Error('Cannot cast a main playlist');
         }
 
         return index as MediaPlaylist;
@@ -381,9 +380,8 @@ export class MediaPlaylist extends BasePlaylist {
 
         obj = obj! || {};
 
-        this.master = false;
         if (obj.master !== undefined && !!obj.master !== this.master) {
-            throw new Error('Cannot create from master playlist');
+            throw new Error('Cannot create from main playlist');
         }
 
         this.target_duration = +obj.target_duration || Number.NaN;
@@ -1027,4 +1025,4 @@ class PlaylistWriter {
     }
 }
 
-export type M3U8Playlist = MediaPlaylist | MasterPlaylist;
+export type M3U8Playlist = MediaPlaylist | MainPlaylist;
