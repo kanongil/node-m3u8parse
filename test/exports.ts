@@ -12,7 +12,7 @@ export const lab = Lab.script();
 const { describe } = lab;
 
 
-describe('has required exports', () => {
+describe('has required exports for', () => {
 
     describe('M3U8Parse', () => {
 

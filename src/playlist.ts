@@ -1,7 +1,8 @@
-import { AttrList } from './attrlist.js';
+/// <reference lib="dom" />
 
-const BigInt = global.BigInt || Number;     // Fallback to Number when no BigInt
-const URL = global.URL;
+import { AttrList } from './attrlist.js';
+import { BigIntish, URL } from './types.js';
+
 
 type Msn = number;
 
@@ -42,7 +43,7 @@ const internals = {
             }
 
             if (typeof value === 'number' || typeof value === 'string') {
-                return BigInt(value);
+                return BigIntish(value);
             }
         }
         catch (err) {}
@@ -493,11 +494,11 @@ export class MediaPlaylist extends BasePlaylist {
 
         msn = internals.tryBigInt(msn)!;
 
-        if (msn < BigInt(this.media_sequence)) {
+        if (msn < BigIntish(this.media_sequence)) {
             return false;
         }
 
-        const lastMsn = BigInt(this.lastMsn(true));
+        const lastMsn = BigIntish(this.lastMsn(true));
         if (msn > lastMsn) {
             return false;
         }
@@ -510,7 +511,7 @@ export class MediaPlaylist extends BasePlaylist {
 
         if (part !== undefined) {
             if (part < 0) {      // Any negative part is assumed to be from the previous segment
-                return this.isValidMsn(msn - BigInt(1));
+                return this.isValidMsn(msn - BigIntish(1));
             }
 
             const { parts = { length: -1 } } = this.getSegment(lastMsn)!;
@@ -631,7 +632,7 @@ export class MediaPlaylist extends BasePlaylist {
             return undefined;
         }
 
-        const segmentIdx = Number(msn - BigInt(this.media_sequence));
+        const segmentIdx = Number(msn - BigIntish(this.media_sequence));
         const segment = this.segments[segmentIdx];
         if (!segment || !segment.byterange) {
             return undefined;
@@ -691,7 +692,7 @@ export class MediaPlaylist extends BasePlaylist {
             return null;
         }
 
-        const index = Number(msn - BigInt(this.media_sequence));
+        const index = Number(msn - BigIntish(this.media_sequence));
         let segment = this.segments[index] || null;
         if (independent && segment) {
             segment = new MediaSegment(segment);
