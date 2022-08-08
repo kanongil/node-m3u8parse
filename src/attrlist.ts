@@ -126,17 +126,7 @@ export class AttrList extends Map<Token, unknown> {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
-            if (Buffer.isBuffer(value)) {
-                if (value.length) {
-                    super.set(name, BigInt(`0x${value.toString('hex')}`).toString(10));
-                }
-                else {
-                    super.set(name, '0');
-                }
-            }
-            else {
-                super.set(name, BigInt(value!).toString(10));
-            }
+            super.set(name, BigInt(value!).toString(10));
         }
 
         const stringValue = super.get(name) as string;
@@ -153,18 +143,7 @@ export class AttrList extends Map<Token, unknown> {
 
         const name = tokenify(attrName);
         if (arguments.length > 1) {
-            if (Buffer.isBuffer(value)) {
-                if (value.length) {
-                    const hexValue = value.toString('hex');
-                    super.set(name, '0x' + (hexValue[0] === '0' ? hexValue.slice(1) : hexValue));
-                }
-                else {
-                    super.set(name, '0x0');
-                }
-            }
-            else {
-                super.set(name, '0x' + BigInt(value!).toString(16));
-            }
+            super.set(name, '0x' + BigInt(value!).toString(16));
         }
 
         const stringValue = super.get(name) as string;

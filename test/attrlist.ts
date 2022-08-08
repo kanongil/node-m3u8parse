@@ -471,21 +471,14 @@ describe('AttrList', () => {
         it('handles decimalInteger conversions', () => {
 
             expect(encode('decimalInteger', BigInt('1234567890123456789'))).to.equal('1234567890123456789');
-            expect(encode('decimalInteger', Buffer.from([0x11,0x22,0x10,0xF4,0x7D,0xE9,0x81,0x15]))).to.equal('1234567890123456789');
             expect(encode('decimalInteger', 123)).to.equal('123');
-            expect(encode('decimalInteger', Buffer.from([0x0]))).to.equal('0');
-            expect(encode('decimalInteger', Buffer.alloc(0))).to.equal('0');
             expect(encode('decimalInteger', 0)).to.equal('0');
         });
 
         it('handles hexadecimalInteger conversions', () => {
 
             expect(encode('hexadecimalInteger', BigInt('0x123456789abcdef0123456789abcdef'))).to.equal('0x123456789abcdef0123456789abcdef');
-            expect(encode('hexadecimalInteger', Buffer.from([0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef,0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef]))).to.equal('0x123456789abcdef0123456789abcdef');
             expect(encode('hexadecimalInteger', 0x123)).to.equal('0x123');
-            expect(encode('hexadecimalInteger', Buffer.from([0xff]))).to.equal('0xff');
-            expect(encode('hexadecimalInteger', Buffer.from([0x0]))).to.equal('0x0');
-            expect(encode('hexadecimalInteger', Buffer.alloc(0))).to.equal('0x0');
             expect(encode('hexadecimalInteger', 0)).to.equal('0x0');
         });
     });
