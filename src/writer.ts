@@ -27,7 +27,7 @@ const streamInfAttrs = function (obj: AttrList, version?: number) {
         attrs.delete('program-id');
     }
 
-    return attrs;
+    return attrs.toString();
 };
 
 
@@ -104,10 +104,9 @@ export class PlaylistWriter {
 
     _writeMain(playlist: Readonly<MainPlaylist>) {
 
-        playlist.session_keys.forEach((key) => {
-
+        for (const key of playlist.session_keys) {
             this._ext('SESSION-KEY', stringifyAttrs(key));
-        });
+        }
 
         // add non-standard marlin entry
 
@@ -130,19 +129,17 @@ export class PlaylistWriter {
             }
         }
 
-        playlist.iframes.forEach((iframe) => {
-
+        for (const iframe of playlist.iframes) {
             this._ext('I-FRAME-STREAM-INF', streamInfAttrs(iframe));
-        });
+        }
 
-        playlist.variants.forEach((variant) => {
-
+        for (const variant of playlist.variants) {
             if (variant.info) {
                 this._ext('STREAM-INF', streamInfAttrs(variant.info));
             }
 
             this._push(variant.uri);
-        });
+        }
     }
 
     _writeMedia(playlist: Readonly<MediaPlaylist>) {
@@ -194,10 +191,9 @@ export class PlaylistWriter {
         }
 
         if (segment.keys) {
-            segment.keys.forEach((key) => {
-
+            for (const key of segment.keys) {
                 this._ext('KEY', stringifyAttrs(key));
-            });
+            }
         }
 
         this._ext('MAP', stringifyAttrs(segment.map));
@@ -245,7 +241,7 @@ export class PlaylistWriter {
         throw new Error('No compiler');
     }
 
-    _ext(ext: string, value?: string | number | boolean | AttrList | Date) {
+    _ext(ext: string, value?: string | number | boolean | Date) {
 
         if (value === undefined ||
             value === false ||
