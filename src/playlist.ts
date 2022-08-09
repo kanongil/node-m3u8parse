@@ -1,6 +1,7 @@
 /// <reference lib="dom" />
 
 import { AttrList } from './attrlist.js';
+import { PlaylistWriter } from './writer.js';
 import { BigIntish, URL } from './types.js';
 
 
@@ -200,37 +201,7 @@ class BasePlaylist implements IRewritableUris {
 
     toString(): string {
 
-        const { stringifyAttrs } = PlaylistWriter;
-
-        const m3u8 = new PlaylistWriter('#EXTM3U');
-
-        if (this.version > 1) {
-            m3u8.ext('VERSION', this.version);
-        }
-
-        for (const key of this.defines) {
-            m3u8.ext('DEFINE', stringifyAttrs(key));
-        }
-
-        m3u8.ext('START', stringifyAttrs(this.start));
-        m3u8.ext('INDEPENDENT-SEGMENTS', !!this.independent_segments);
-
-        if (this.vendor) {
-
-            // Add vendor extensions
-
-            for (const [ext, value] of this.vendor) {
-                let line = ext;
-
-                if (internals.isStringish(value)) {
-                    line += ':' + value;
-                }
-
-                m3u8.push(line);
-            }
-        }
-
-        return m3u8.toString();
+        return new PlaylistWriter(this as any).toString();
     }
 }
 
@@ -288,55 +259,6 @@ export class MainPlaylist extends BasePlaylist {
         rewriteAttrs(mapFn, this.session_keys, 'session-key');
 
         return super.rewriteUris(mapFn as UriMapFunction);
-    }
-
-    toString(): string {
-
-        const { stringifyAttrs, streamInfAttrs } = PlaylistWriter;
-
-        const m3u8 = new PlaylistWriter(super.toString());
-
-        this.session_keys.forEach((key) => {
-
-            m3u8.ext('SESSION-KEY', stringifyAttrs(key));
-        });
-
-        // add non-standard marlin entry
-
-        const keys = (this as any as MediaSegment).keys;
-        if (keys && Array.isArray(keys)) {
-            for (const key of keys) {
-                m3u8.ext('KEY', stringifyAttrs(key));
-            }
-        }
-
-        for (const list of this.data.values()) {
-            for (const data of list) {
-                m3u8.ext('SESSION-DATA', stringifyAttrs(data));
-            }
-        }
-
-        for (const list of this.groups.values()) {
-            for (const group of list) {
-                m3u8.ext('MEDIA', stringifyAttrs(group));
-            }
-        }
-
-        this.iframes.forEach((iframe) => {
-
-            m3u8.ext('I-FRAME-STREAM-INF', streamInfAttrs(iframe));
-        });
-
-        this.variants.forEach((variant) => {
-
-            if (variant.info) {
-                m3u8.ext('STREAM-INF', streamInfAttrs(variant.info));
-            }
-
-            m3u8.push(variant.uri);
-        });
-
-        return m3u8.toString() + '\n';
     }
 }
 
@@ -751,51 +673,6 @@ export class MediaPlaylist extends BasePlaylist {
 
         return super.rewriteUris(mapFn as UriMapFunction);
     }
-
-    toString(): string {
-
-        const { stringifyAttrs } = PlaylistWriter;
-
-        const m3u8 = new PlaylistWriter(super.toString());
-
-        m3u8.ext('TARGETDURATION', this.target_duration);
-
-        m3u8.ext('PLAYLIST-TYPE', this.type);
-
-        m3u8.ext('SERVER-CONTROL', stringifyAttrs(this.server_control));
-        m3u8.ext('PART-INF', stringifyAttrs(this.part_info));
-
-        const mediaSequence = parseInt(this.media_sequence as unknown as string, 10) || 0;
-        if (mediaSequence !== 0) {
-            m3u8.ext('MEDIA-SEQUENCE', mediaSequence);
-        }
-
-        if (this.type !== PlaylistType.VOD && this.type !== PlaylistType.EVENT) {
-            m3u8.ext('DISCONTINUITY-SEQUENCE', parseInt(this.discontinuity_sequence as unknown as string, 10));
-        }
-
-        if (this.version >= 4) {
-            m3u8.ext('I-FRAMES-ONLY', !!this.i_frames_only);
-        }
-
-        const meta = this.meta || {};
-
-        m3u8.ext('SKIP', stringifyAttrs(meta.skip));
-
-        for (const segment of this.segments) {
-            m3u8.push(...segment.toString().split('\n'));
-        }
-
-        for (const [ext, entry] of MediaPlaylist._metas.entries()) {
-            for (const key of meta[entry] || []) {
-                m3u8.ext(ext, stringifyAttrs(key));
-            }
-        }
-
-        m3u8.ext('ENDLIST', !!(this.ended && !this.master));
-
-        return m3u8.toString() + '\n';
-    }
 }
 
 
@@ -899,67 +776,6 @@ export class MediaSegment implements IRewritableUris {
 
         return this;
     }
-
-    toString(): string {
-
-        const { stringifyAttrs } = PlaylistWriter;
-        const m3u8 = new PlaylistWriter();
-
-        m3u8.ext('DISCONTINUITY', !!this.discontinuity);
-
-        if (this.program_time) {
-            const program_time = this.program_time.toISOString ? this.program_time.toISOString() : this.program_time;
-            m3u8.ext('PROGRAM-DATE-TIME', program_time);
-        }
-
-        if (this.keys) {
-            this.keys.forEach((key) => {
-
-                m3u8.ext('KEY', stringifyAttrs(key));
-            });
-        }
-
-        m3u8.ext('MAP', stringifyAttrs(this.map));
-
-        if (this.byterange?.length || this.byterange?.length === 0) {
-            let range = '' + this.byterange.length;
-            if (this.byterange.offset || this.byterange.offset === 0) {
-                range += '@' + this.byterange.offset;
-            }
-
-            m3u8.ext('BYTERANGE', range);
-        }
-
-        if (this.vendor) {
-
-            // Add vendor extensions
-
-            for (const [ext, value] of this.vendor) {
-                let line = ext;
-
-                if (internals.isStringish(value)) {
-                    line += ':' + value;
-                }
-
-                m3u8.push(line);
-            }
-        }
-
-        for (const part of this.parts || []) {
-            m3u8.ext('PART', stringifyAttrs(part));
-        }
-
-        if (this.duration) {
-            m3u8.push(`#EXTINF:${parseFloat(this.duration.toFixed(5))},${this.title}`);
-            m3u8.ext('GAP', !!this.gap);
-
-            if (this.uri) {
-                m3u8.push(this.uri);
-            }
-        }
-
-        return m3u8.toString();
-    }
 }
 
 
@@ -967,65 +783,5 @@ export type IndependentSegment = MediaSegment & {
     byterange?: Byterange;
 };
 
-
-class PlaylistWriter {
-
-    static stringifyAttrs(attrs: AttrList | undefined) {
-
-        if (attrs === undefined || typeof attrs !== 'object') {
-            return undefined;
-        }
-
-        if (!(attrs instanceof AttrList)) {
-            attrs = new AttrList(attrs);
-        }
-
-        return attrs.size > 0 ? attrs.toString() : undefined;
-    }
-
-    static streamInfAttrs(obj: AttrList, version?: number) {
-
-        const attrs = new AttrList(obj);
-        if (version! >= 6) {
-            attrs.delete('program-id');
-        }
-
-        return attrs;
-    }
-
-    _list: string[];
-
-    constructor(header?: string) {
-
-        this._list = header ? [header] : [];
-    }
-
-    push(...lines: string[]) {
-
-        this._list.push(...lines);
-    }
-
-    ext(ext: string, value?: string | number | boolean | AttrList | Date) {
-
-        if (value === undefined ||
-            value === false ||
-            (typeof value === 'number' && isNaN(value))) {
-
-            return;
-        }
-
-        if (value === true) {
-            this.push('#EXT-X-' + ext);
-        }
-        else {
-            this.push(`#EXT-X-${ext}:${value}`);
-        }
-    }
-
-    toString() {
-
-        return this._list.join('\n');
-    }
-}
 
 export type M3U8Playlist = MediaPlaylist | MainPlaylist;
