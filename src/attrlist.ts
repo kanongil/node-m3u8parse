@@ -82,16 +82,16 @@ export class AttrList extends Map<Token, unknown> {
     }
 
     get(attr: string): string | undefined;
-    get(attr: string, type?: Enum<AttrType.BigInt | AttrType.HexInt>): bigint;
-    get(attr: string, type?: Enum<AttrType.Int | AttrType.HexNo | AttrType.Float | AttrType.SignedFloat>): number;
+    get(attr: string, type?: Enum<AttrType.BigInt | AttrType.HexInt>): bigint | undefined;
+    get(attr: string, type?: Enum<AttrType.Int | AttrType.HexNo | AttrType.Float | AttrType.SignedFloat>): number | undefined;
     // eslint-disable-next-line @typescript-eslint/unified-signatures
     get(attr: string, type?: Enum<AttrType.Enum | AttrType.String>): string | undefined;
     get(attr: string, type?: Enum<AttrType.Resolution>): Resolution | undefined;
     get(attr: string, type?: Enum<AttrType.Byterange>): Byterange | undefined;
 
-    get(attr: string, type: Enum<AttrType> = AttrType.Enum): unknown {
+    get(attr: string, type: Enum<AttrType> = AttrType.Enum): unknown | undefined {
 
-        return this._applyType(type as AttrType, attr);
+        return this.has(attr) ? this._applyType(type as AttrType, attr) : undefined;
     }
 
     set(attr: string, value: undefined | null): this;

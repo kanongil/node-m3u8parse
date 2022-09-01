@@ -102,6 +102,14 @@ describe('AttrList', () => {
                 }
             });
 
+            it('returns "undefined" when attr is not present', () => {
+
+                const list = new AttrList();
+                for (const [type] of types) {
+                    expect(list!.get(type, type)).to.be.undefined();
+                }
+            });
+
             it('fails on unknown types', ({ context: { list } }: TestArg) => {
 
                 expect(() => list!.get('int', 'b' as any)).to.throw('Invalid type: b');
