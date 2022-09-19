@@ -162,10 +162,24 @@ export class MediaPlaylist extends BasePlaylist implements IRewritableUris {
         return !(this.ended || this.type === PlaylistType.VOD);
     }
 
-    totalDuration(): number {
+    totalDuration(includePartial = false): number {
 
         const segments = this.segments as ImmutableMediaSegment[];
-        return segments.reduce((sum, segment) => sum + (segment.duration ?? 0), 0);
+        return segments.reduce((sum, segment) => {
+
+            if (segment.isPartial()) {
+                if (includePartial) {
+                    for (const part of segment.parts ?? []) {
+                        sum += part.get('duration', AttrList.Types.Float)!;
+                    }
+                }
+            }
+            else {
+                sum += segment.duration;
+            }
+
+            return sum;
+        }, 0);
     }
 
     startMsn(full = false): Msn {

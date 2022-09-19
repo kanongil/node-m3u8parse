@@ -177,7 +177,20 @@ describe('M3U8Playlist', () => {
         it('should calculate total of all segments durations', () => {
 
             expect(testIndex.totalDuration()).to.equal(46.166);
+            expect(testIndexLl.totalDuration()).to.equal(16.00032);
+            expect(testIndexLl.totalDuration(false)).to.equal(16.00032);
             expect(new MediaPlaylist().totalDuration()).to.equal(0);
+        });
+
+        it('should include duration of trailing partial segment with parts', () => {
+
+            expect(testIndex.totalDuration(true)).to.equal(46.166);
+            expect(parseFloat(testIndexLl.totalDuration(true).toFixed(5))).to.equal(17.33368);
+            expect(new MediaPlaylist().totalDuration(true)).to.equal(0);
+
+            const fullLastSegment = new MediaPlaylist(testIndexLl);
+            fullLastSegment.segments.pop();
+            expect(fullLastSegment.totalDuration(true)).to.equal(16.00032);
         });
     });
 
