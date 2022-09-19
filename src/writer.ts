@@ -1,13 +1,10 @@
-import { AttrList } from './attrlist.js';
-import { M3U8Playlist, MainPlaylist, MediaPlaylist, MediaSegment } from './playlist.js';
+import { AttrList, ImmutableAttrList } from './attrlist.js';
+import { isStringish } from './playlist-base.js';
+import { MediaPlaylist, ImmutableMediaSegment, ImmutableMainPlaylist as ImmutableMainPlaylist, ImmutableMediaPlaylist as ImmutableMediaPlaylist } from './playlist.js';
+import { PropsOf } from './types.js';
 
 
-const isStringish = function (val: unknown): boolean {
-
-    return !!val || val === '';
-};
-
-const stringifyAttrs = function (attrs: AttrList | undefined) {
+const stringifyAttrs = function (attrs: ImmutableAttrList | undefined) {
 
     if (attrs === undefined || typeof attrs !== 'object') {
         return undefined;
@@ -20,7 +17,7 @@ const stringifyAttrs = function (attrs: AttrList | undefined) {
     return attrs.size > 0 ? attrs.toString() : undefined;
 };
 
-const streamInfAttrs = function (obj: AttrList, version?: number) {
+const streamInfAttrs = function (obj: ImmutableAttrList, version?: number) {
 
     const attrs = new AttrList(obj);
     if (version! >= 6) {
@@ -33,9 +30,9 @@ const streamInfAttrs = function (obj: AttrList, version?: number) {
 
 export class PlaylistWriter {
 
-    readonly playlist: Readonly<M3U8Playlist>;
+    readonly playlist: PropsOf<ImmutableMainPlaylist | ImmutableMediaPlaylist>;
 
-    constructor(playlist: Readonly<M3U8Playlist>) {
+    constructor(playlist: PropsOf<ImmutableMainPlaylist | ImmutableMediaPlaylist>) {
 
         this.playlist = playlist;
     }
@@ -71,7 +68,7 @@ export class PlaylistWriter {
         return list.join('\n');
     }
 
-    _writeShared(playlist: Readonly<M3U8Playlist>) {
+    _writeShared(playlist: PropsOf<ImmutableMainPlaylist | ImmutableMediaPlaylist>) {
 
         this._push('#EXTM3U');
 
@@ -102,19 +99,10 @@ export class PlaylistWriter {
         }
     }
 
-    _writeMain(playlist: Readonly<MainPlaylist>) {
+    _writeMain(playlist: PropsOf<ImmutableMainPlaylist>) {
 
         for (const key of playlist.session_keys) {
             this._ext('SESSION-KEY', stringifyAttrs(key));
-        }
-
-        // add non-standard marlin entry
-
-        const keys = (playlist as any as MediaSegment).keys;
-        if (keys && Array.isArray(keys)) {
-            for (const key of keys) {
-                this._ext('KEY', stringifyAttrs(key));
-            }
         }
 
         for (const list of playlist.data.values()) {
@@ -142,7 +130,7 @@ export class PlaylistWriter {
         }
     }
 
-    _writeMedia(playlist: Readonly<MediaPlaylist>) {
+    _writeMedia(playlist: PropsOf<ImmutableMediaPlaylist>) {
 
         this._ext('TARGETDURATION', playlist.target_duration);
 
@@ -181,7 +169,7 @@ export class PlaylistWriter {
         this._ext('ENDLIST', !!playlist.ended);
     }
 
-    _writeSegment(segment: MediaSegment) {
+    _writeSegment(segment: PropsOf<ImmutableMediaSegment>) {
 
         this._ext('DISCONTINUITY', !!segment.discontinuity);
 
@@ -222,17 +210,15 @@ export class PlaylistWriter {
             }
         }
 
-        for (const part of segment.parts || []) {
+        for (const part of segment.parts ?? []) {
             this._ext('PART', stringifyAttrs(part));
         }
 
-        if (segment.duration) {
+        if (segment.uri && segment.duration !== undefined) {
             this._push(`#EXTINF:${parseFloat(segment.duration.toFixed(5))},${segment.title}`);
             this._ext('GAP', !!segment.gap);
 
-            if (segment.uri) {
-                this._push(segment.uri);
-            }
+            this._push(segment.uri);
         }
     }
 

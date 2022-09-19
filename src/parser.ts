@@ -1,5 +1,6 @@
 import { AttrList } from './attrlist.js';
-import { M3U8Playlist, MediaPlaylist, MainPlaylist, MediaSegment } from './playlist.js';
+import { MediaPlaylist, MainPlaylist, MediaSegment, M3U8Playlist } from './playlist.js';
+import { PropsOf } from './types.js';
 
 
 export enum PlaylistType {
@@ -15,7 +16,7 @@ export interface ParserOptions {
 
 
 interface ParserState {
-    readonly m3u8: Partial<Omit<MediaPlaylist, 'master'> & Omit<MainPlaylist, 'master'> & { master: boolean }>;
+    readonly m3u8: Partial<Omit<PropsOf<MediaPlaylist>, 'master'> & Omit<PropsOf<MainPlaylist>, 'master'> & { master: boolean }>;
     meta: MediaSegment & { info?: AttrList };
 }
 

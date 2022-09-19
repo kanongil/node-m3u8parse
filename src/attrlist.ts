@@ -42,6 +42,7 @@ export class AttrList extends Map<Token, unknown> {
 
     static readonly Types = AttrType;
 
+    constructor(attrs?: ImmutableAttrList | string | { readonly [key: string]: string } | Map<string, unknown> | ReadonlyArray<ReadonlyArray<string>>);
     constructor(attrs?: AttrList | string | { [key: string]: string } | Map<string,unknown> | Array<Array<string>>) {
 
         super();
@@ -305,3 +306,6 @@ export class AttrList extends Map<Token, unknown> {
         throw new TypeError('Invalid type: ' + type);
     }
 }
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface ImmutableAttrList extends Omit<AttrList, 'clear' | 'delete' | 'set'> {}

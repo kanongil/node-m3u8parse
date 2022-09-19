@@ -701,7 +701,7 @@ describe('M3U8Playlist', () => {
                     uri: 'url',
                     duration: 10,
                     title: '',
-                    vendor: { '#EXT-MY-TEST': 'yeah!', '#EXT-MY-SIMPLE': false }
+                    vendor: { '#EXT-MY-TEST': 'yeah!', '#EXT-MY-SIMPLE': false } as any
                 })
             ];
             index.ended = true;
