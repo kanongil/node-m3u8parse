@@ -4,13 +4,15 @@
     "allowSyntheticDefaultImports": true,
     "target": "ES2020",
     "lib": [ "ES2020" ],
-    "module": "ES2020",
+    "module": "ES2022",
     "moduleResolution": "node16",
     "isolatedModules": true,
     "declaration": true,
     "strict": true,
     "strictNullChecks": true,
     "esModuleInterop": false,
-    "outDir": "../lib"
-  }
+    "types": [],
+    "outDir": "../lib",
+  },
+  "include": ["**.ts"]
 }
