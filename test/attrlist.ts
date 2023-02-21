@@ -76,7 +76,7 @@ describe('AttrList', () => {
         it('works', () => {
 
             const attrs = new AttrList({ a: 'ok' });
-            for (const [entry, value] of attrs) {
+            for (const [entry, value] of attrs.entries()) {
                 new AttrList().set(entry, value.toUpperCase());
             }
         });
@@ -110,7 +110,7 @@ describe('AttrList', () => {
             it('handles all known types', ({ context: { list } }: TestArg) => {
 
                 for (const [type, value] of types) {
-                    expect(list!.get(type, type)).to.equal(value);
+                    expect(list!.get(type, type as 'enum')).to.equal(value);
                 }
             });
 
@@ -118,13 +118,13 @@ describe('AttrList', () => {
 
                 const list = new AttrList();
                 for (const [type] of types) {
-                    expect(list!.get(type, type)).to.be.undefined();
+                    expect(list!.get(type, type as 'enum')).to.be.undefined();
                 }
             });
 
             it('fails on unknown types', ({ context: { list } }: TestArg) => {
 
-                expect(() => list!.get('int', 'b' as any)).to.throw('Invalid type: b');
+                expect(() => list!.get('int', 'b' as 'enum')).to.throw('Invalid type: b');
             });
 
             it('fails on non-string attributes', ({ context: { list } }: TestArg) => {
@@ -141,7 +141,7 @@ describe('AttrList', () => {
 
                 const attrs = new AttrList();
                 for (const [type, value] of types) {
-                    attrs.set(type, value, type);
+                    attrs.set(type, value, type as 'enum');
                 }
 
                 expect(attrs).to.equal(list!);
@@ -149,7 +149,7 @@ describe('AttrList', () => {
 
             it('fails on unknown types', ({ context: { list } }: TestArg) => {
 
-                expect(() => list!.set('int', 42, 'b' as any)).to.throw('Invalid type: b');
+                expect(() => list!.set('int', 42, 'b' as 'int')).to.throw('Invalid type: b');
             });
 
             it('handles falsy types', () => {
@@ -168,7 +168,7 @@ describe('AttrList', () => {
                 attrs.set('a', BigInt(0));
                 expect(attrs.get('a')).to.equal('0');
 
-                attrs.set('a', false);
+                attrs.set('a', false as any);
                 expect(attrs.get('a')).to.equal('false');
 
                 attrs.set('a', Number.NaN);

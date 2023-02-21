@@ -77,7 +77,7 @@ export const cloneAttrMap = function (src?: Iterable<[string, readonly Immutable
 };
 
 
-export const isStringish = function (val: unknown): boolean {
+export const isStringish = function (val: unknown): val is string  {
 
     return !!val || val === '';
 };

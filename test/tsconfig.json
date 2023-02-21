@@ -10,7 +10,7 @@
     "strict": true,
     "strictNullChecks": true,
     "esModuleInterop": false,
-    "types": ["node"]
+    "types": []
   },
   "references": [{
     "path": "../src/tsconfig.debug.json",
