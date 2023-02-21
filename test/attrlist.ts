@@ -70,6 +70,18 @@ describe('AttrList', () => {
         expect(list.toString()).to.equal('INT=42,HEX=0x42,FLOAT=0.42,STRING="hi",ENUM=OK,RES=4x2');
     });
 
+
+    describe('iterator', () => {
+
+        it('works', () => {
+
+            const attrs = new AttrList({ a: 'ok' });
+            for (const [entry, value] of attrs) {
+                new AttrList().set(entry, value.toUpperCase());
+            }
+        });
+    });
+
     describe('method', () => {
 
         const types: [any, any][] = [

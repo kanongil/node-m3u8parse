@@ -1,8 +1,6 @@
 type Enum<T extends string> = T | `${T}`;
 
-interface Token {
-    toUpperCase(): string;
-}
+type Token = Lowercase<string>;
 
 export type Resolution = {
     width: number;
@@ -27,7 +25,7 @@ enum AttrType {
     Byterange = 'byterange'
 }
 
-const tokenify = function (attr: string): Token {
+const tokenify = function (attr: string): Lowercase<string> {
 
     if (typeof attr !== 'string') {
         throw new TypeError('Attributes must be a "string"');
@@ -38,7 +36,7 @@ const tokenify = function (attr: string): Token {
 
 // AttrList's are handled without any implicit knowledge of key/type mapping
 
-export class AttrList extends Map<Token, unknown> {
+export class AttrList extends Map<Token, string> {
 
     static readonly Types = AttrType;
 
@@ -50,7 +48,7 @@ export class AttrList extends Map<Token, unknown> {
         const set = (key: Token, value: unknown, format?: (val: unknown) => string) => {
 
             if (value !== null && value !== undefined) {
-                super.set(key, format ? format(value) : value);
+                super.set(key, format ? format(value) : <string>value);
             }
         };
 
