@@ -50,8 +50,8 @@ export class AttrList<E extends TAnyAttr = TAnyAttr> extends Map<StringKeys<E>, 
 
     static readonly Types = AttrType;
 
-    constructor(attrs?: ImmutableAttrList<E> | string | { readonly [key: string]: string } | Map<string, unknown> | ReadonlyArray<ReadonlyArray<string>>);
-    constructor(attrs?: AttrList | string | { [key: string]: string } | Map<string,unknown> | Array<Array<string>>) {
+    constructor(attrs?: ImmutableAttrList<E> | string | { readonly [key in StringKeys<E>]?: string } | Map<string, unknown> | ReadonlyArray<ReadonlyArray<string>>);
+    constructor(attrs?: AttrList | string | { [key: string]: string } | Map<string, unknown> | Array<Array<string>>) {
 
         super();
 
