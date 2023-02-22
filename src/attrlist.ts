@@ -41,16 +41,16 @@ const tokenify = function <T extends string>(attr: T): T {
     return attr.toLowerCase() as T;
 };
 
-type AnyAttr = { [key: string]: AttrType };
+export type TAnyAttr = { [key: string]: AttrType };
 
 // AttrList's are handled without any implicit knowledge of key/type mapping
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-export class AttrList<E extends AnyAttr = AnyAttr> extends Map<StringKeys<E>, string> {
+export class AttrList<E extends TAnyAttr = TAnyAttr> extends Map<StringKeys<E>, string> {
 
     static readonly Types = AttrType;
 
-    constructor(attrs?: ImmutableAttrList | string | { readonly [key: string]: string } | Map<string, unknown> | ReadonlyArray<ReadonlyArray<string>>);
+    constructor(attrs?: ImmutableAttrList<E> | string | { readonly [key: string]: string } | Map<string, unknown> | ReadonlyArray<ReadonlyArray<string>>);
     constructor(attrs?: AttrList | string | { [key: string]: string } | Map<string,unknown> | Array<Array<string>>) {
 
         super();
@@ -305,4 +305,4 @@ export class AttrList<E extends AnyAttr = AnyAttr> extends Map<StringKeys<E>, st
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ImmutableAttrList extends Omit<AttrList, 'clear' | 'delete' | 'set'> {}
+export interface ImmutableAttrList<T extends TAnyAttr = TAnyAttr> extends Omit<AttrList<T>, 'clear' | 'delete' | 'set'> {}

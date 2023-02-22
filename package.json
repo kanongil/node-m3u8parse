@@ -31,6 +31,9 @@
       },
       "default": "./lib/index.js"
     },
+    "./types/attrs": {
+      "types": "./lib/attr-typings.d.ts"
+    },
     "./attrlist": "./lib/attrlist.js",
     "./playlist": "./lib/playlist.js"
   },

@@ -1,25 +1,27 @@
-import { AttrList, ImmutableAttrList } from './attrlist.js';
+import type * as Attr from './attr-typings.js';
+
+import { TAnyAttr, AttrList, ImmutableAttrList } from './attrlist.js';
 import { isStringish } from './playlist-base.js';
 import { MediaPlaylist, ImmutableMediaSegment, ImmutableMainPlaylist as ImmutableMainPlaylist, ImmutableMediaPlaylist as ImmutableMediaPlaylist } from './playlist.js';
 import { PropsOf } from './types.js';
 
 
-const stringifyAttrs = function (attrs: ImmutableAttrList | undefined) {
+const stringifyAttrs = function <T extends TAnyAttr>(attrs: ImmutableAttrList<T> | undefined) {
 
     if (attrs === undefined || typeof attrs !== 'object') {
         return undefined;
     }
 
     if (!(attrs instanceof AttrList)) {
-        attrs = new AttrList(attrs);
+        attrs = new AttrList<T>(attrs);
     }
 
     return attrs.size > 0 ? attrs.toString() : undefined;
 };
 
-const streamInfAttrs = function (obj: ImmutableAttrList, version?: number) {
+const streamInfAttrs = function <T extends Attr.StreamInf | Attr.IFrameStreamInf>(obj: ImmutableAttrList<T>, version?: number): string {
 
-    const attrs = new AttrList(obj);
+    const attrs = new AttrList(obj as ImmutableAttrList);
     if (version! >= 6) {
         attrs.delete('program-id');
     }
@@ -162,7 +164,7 @@ export class PlaylistWriter {
 
         for (const [ext, entry] of MediaPlaylist._metas.entries()) {
             for (const key of meta[entry] || []) {
-                this._ext(ext, stringifyAttrs(key));
+                this._ext(ext, stringifyAttrs<TAnyAttr>(key as AttrList));
             }
         }
 

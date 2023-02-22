@@ -1,3 +1,5 @@
+import type * as AttrT from './attr-typings.js';
+
 import { AttrList, Byterange } from './attrlist.js';
 import { cloneAttrArray, IRewritableUris, isStringish, rewriteAttr, rewriteAttrs, UriMapFunction } from './playlist-base.js';
 import { Proto, URL } from './types.js';
@@ -11,11 +13,11 @@ export class MediaSegment implements IRewritableUris {
     discontinuity: boolean;
 
     program_time?: Date | null;
-    keys?: AttrList[];
+    keys?: AttrList<AttrT.Key>[];
     byterange?: Byterange;
-    map?: AttrList;
+    map?: AttrList<AttrT.Map>;
     gap?: boolean;
-    parts?: AttrList[];
+    parts?: AttrList<AttrT.Part>[];
 
     vendor?: Iterable<[string, string | null]>;
 
@@ -57,7 +59,7 @@ export class MediaSegment implements IRewritableUris {
         }
 
         if (version! >= 5 && meta.map) {
-            this.map = new AttrList(meta.map);
+            this.map = new AttrList<AttrT.Map>(meta.map);
         }
 
         if (meta.gap) {

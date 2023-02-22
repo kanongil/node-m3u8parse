@@ -1,11 +1,14 @@
+import type * as AttrT from './attr-typings.js';
+
 import { AttrList } from './attrlist.js';
 import { BasePlaylist, cloneAttrArray, cloneAttrMap, ImmutableUriMapFunction, Immutify, IRewritableUris, isStringish, rewriteAttrs, rewriteMappedAttrs, UriMapFunction } from './playlist-base.js';
 import { MediaPlaylist } from './playlist-media.js';
 import { Proto } from './types.js';
 
+
 interface Variant {
     uri: string;
-    info?: AttrList;
+    info?: AttrList<AttrT.StreamInf>;
 }
 
 export type EntryType = 'variant' | 'iframe' | 'group' | 'data' | 'session-key';
@@ -24,10 +27,10 @@ export class MainPlaylist extends BasePlaylist implements IRewritableUris {
     readonly master: true = true;
 
     variants: Variant[];
-    groups: Map<string, AttrList[]>;
-    iframes: AttrList[];
-    data: Map<string, AttrList[]>;
-    session_keys: AttrList[];
+    groups: Map<string, AttrList<AttrT.Media>[]>;
+    iframes: AttrList<AttrT.IFrameStreamInf>[];
+    data: Map<string, AttrList<AttrT.SessionData>[]>;
+    session_keys: AttrList<AttrT.SessionKey>[];
 
     constructor(obj?: Proto<MainPlaylist | ImmutableMainPlaylist>);
     constructor(obj?: Proto<ImmutableMainPlaylist>) {

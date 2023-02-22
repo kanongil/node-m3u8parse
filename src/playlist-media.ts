@@ -1,4 +1,6 @@
-import { AttrList, Byterange } from './attrlist.js';
+import type * as AttrT from './attr-typings.js';
+
+import { TAnyAttr, AttrList, Byterange } from './attrlist.js';
 import { ImmutableMediaSegment, IndependentSegment, MediaSegment } from './media-segment.js';
 import { BasePlaylist, cloneAttrArray, ImmutableUriMapFunction, Immutify, IRewritableUris, rewriteAttrs, UriMapFunction } from './playlist-base.js';
 import { MainPlaylist } from './playlist-main.js';
@@ -21,10 +23,10 @@ enum ArrayMetas {
 /* eslint-enable no-unused-vars */
 
 interface Meta {
-    skip?: AttrList;
-    ranges?: AttrList[];
-    preload_hints?: AttrList[];
-    rendition_reports?: AttrList[];
+    skip?: AttrList<AttrT.Skip>;
+    ranges?: AttrList<AttrT.Daterange>[];
+    preload_hints?: AttrList<AttrT.PreloadHint>[];
+    rendition_reports?: AttrList<AttrT.RenditionReport>[];
 }
 
 
@@ -91,8 +93,8 @@ export class MediaPlaylist extends BasePlaylist implements IRewritableUris {
 
     meta: Meta;
 
-    server_control?: AttrList;
-    part_info?: AttrList;
+    server_control?: AttrList<AttrT.ServerControl>;
+    part_info?: AttrList<AttrT.PartInf>;
 
     constructor(obj?: Proto<MediaPlaylist | ImmutableMediaPlaylist>);
     constructor(obj?: Proto<ImmutableMediaPlaylist> & Legacy) {
@@ -121,22 +123,22 @@ export class MediaPlaylist extends BasePlaylist implements IRewritableUris {
         this.meta = Object.create(null);
         if (obj.meta) {
             if (obj.meta.skip) {
-                this.meta.skip = new AttrList(obj.meta.skip);
+                this.meta.skip = new AttrList<AttrT.Skip>(obj.meta.skip);
             }
 
             for (const key of MediaPlaylist._metas.values()) {
                 if (obj.meta[key]) {
-                    this.meta[key] = cloneAttrArray(obj.meta[key]);
+                    this.meta[key] = cloneAttrArray<TAnyAttr>(obj.meta[key] as AttrList[]);
                 }
             }
         }
 
         if (obj.server_control) {
-            this.server_control = new AttrList(obj.server_control);
+            this.server_control = new AttrList<AttrT.ServerControl>(obj.server_control);
         }
 
         if (obj.part_info) {
-            this.part_info = new AttrList(obj.part_info);
+            this.part_info = new AttrList<AttrT.PartInf>(obj.part_info);
         }
     }
 
@@ -317,11 +319,11 @@ export class MediaPlaylist extends BasePlaylist implements IRewritableUris {
         return firstValid.msn;
     }
 
-    keysForMsn(msn: Msn | bigint): AttrList[] | undefined {
+    keysForMsn(msn: Msn | bigint): AttrList<AttrT.Key>[] | undefined {
 
         msn = tryBigInt(msn)!;
 
-        const keys = new Map<string, AttrList>();
+        const keys = new Map<string, AttrList<AttrT.Key>>();
         const initialMsn = msn;
 
         let segment;
@@ -339,7 +341,7 @@ export class MediaPlaylist extends BasePlaylist implements IRewritableUris {
                         return undefined;
                     }
 
-                    keys.set(keyformat, new AttrList(key));
+                    keys.set(keyformat, new AttrList<AttrT.Key>(key));
 
                     if (this.version < 5) {
                         break;
@@ -408,7 +410,7 @@ export class MediaPlaylist extends BasePlaylist implements IRewritableUris {
         return { length, offset };
     }
 
-    mapForMsn(msn: Msn | bigint): AttrList | undefined {
+    mapForMsn(msn: Msn | bigint): AttrList<AttrT.Map> | undefined {
 
         return this._lastSegmentProperty('map', msn);
     }
