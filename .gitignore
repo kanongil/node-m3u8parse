@@ -1,5 +1,6 @@
 /node_modules/
 /coverage/
 .coveralls.yml
-/lib/**.js
-/lib/**.d.ts
+/lib/
+/test/*.js
+**/*.tsbuildinfo

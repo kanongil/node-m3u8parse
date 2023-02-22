@@ -4,17 +4,18 @@ const EslintPluginHapi = require('@hapi/eslint-plugin');
 const TypescriptRules = require('@typescript-eslint/eslint-plugin').rules;
 
 
+const denylist = new Set([
+    'padding-line-between-statements',    // Incompatible syntax
+    'key-spacing'                         // Currently broken in node v14: https://github.com/typescript-eslint/typescript-eslint/issues/6396
+]);
+
+
 const tsifyRules = function (from) {
 
     const rules = {};
 
     for (const rule in from) {
-        if (rule === 'no-undef') {
-            rules[rule] = 'off';          // Handled by typescript compiler
-            continue;
-        }
-
-        if (TypescriptRules[rule] && rule !== 'padding-line-between-statements') {
+        if (TypescriptRules[rule] && !denylist.has(rule)) {
             rules[rule] = 'off';
             rules[`@typescript-eslint/${rule}`] = from[rule];
         }
@@ -27,25 +28,21 @@ const tsifyRules = function (from) {
 module.exports = {
     root: true,
     extends: [
-        'plugin:@hapi/recommended',
-        'plugin:@typescript-eslint/eslint-recommended'
+        'plugin:@hapi/recommended'
     ],
-    plugins: [
-        '@typescript-eslint'
-    ],
+    parser: '@typescript-eslint/parser',
     parserOptions: {
-        ecmaVersion: 2019
+        ecmaVersion: 2020
     },
-    ignorePatterns: ['/lib/**/*.js', '/lib/**/*.d.ts'],
+    ignorePatterns: ['lib/**', 'test/*.js'],
     overrides: [{
-        files: ['lib/**/*.ts'],
+        files: ['**/*.ts'],
         extends: [
             'plugin:@typescript-eslint/recommended'
         ],
-        parser: '@typescript-eslint/parser',
         parserOptions: {
             sourceType: 'module',
-            project: './tsconfig.json',
+            project: './**/tsconfig.json',
             tsconfigRootDir: __dirname
         },
         rules: {
